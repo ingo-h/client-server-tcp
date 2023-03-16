@@ -1,15 +1,11 @@
 # Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-# Redistribution only with this Copyright remark. Last modified: 2023-03-15
+# Redistribution only with this Copyright remark. Last modified: 2023-03-16
 
 # Configure and build with:
 # cmake -S . -B build [-D CMAKE_BUILD_TYPE=Debug -D GOOGLETEST=ON]
 # cmake --build build --config Debug|Release
 
 cmake_minimum_required(VERSION 3.18)
-
-# This is the common header included by all (sub)projects
-#--------------------------------------------------------
-# Version 3.18 is the version from the Debian 11 (bullseye) repository.
 
 # This is a guard that you do not build direct in the source tree.
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_BINARY_DIR}")
@@ -33,6 +29,9 @@ project(CLIENT_SERVER_TCP VERSION 0001
 
 enable_testing()
 
+#################################
+# Options                       #
+#################################
 set (BUILD_SHARED_LIBS ON CACHE INTERNAL
     "This option belongs only to GOOGLETEST and build its libraries shared.")  # Implies FORCE
 
@@ -42,8 +41,44 @@ if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type specified, defaulting to Release.")
 endif()
 
+
+#################################
+# General build settings        #
+#################################
+# We have visibility support as described at https://gcc.gnu.org/wiki/Visibility
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+
 add_compile_definitions(
-    $<$<CONFIG:Debug>:DEBUG>
+        # General define DEBUG if build type is "Debug". Manage setting NDEBUG
+        # is done by cmake by default.
+        $<$<CONFIG:Debug>:DEBUG>
+        # There are traditional min/max macros on MS Windows which conflict
+        # with the C++ std::min|max functions. Following switch disable the
+        # macros.
+        $<$<CXX_COMPILER_ID:MSVC>:NOMINMAX>
+)
+add_compile_options(
+        # disable warning C4996: 'strdup'(or others): The POSIX name for this
+        # item is deprecated. Instead, use the ISO C and C++ conformant name:
+        # _strdup. See online help for details. (This is Microsoft specific, no
+        # need to fix).
+        $<$<CXX_COMPILER_ID:MSVC>:/wd4996>
+        # Enable lots of warnings and all warnings as errors
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wextra>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wpedantic>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wuninitialized>
+        $<$<CXX_COMPILER_ID:GNU>:-Wsuggest-override> # Only valid for C++/ObjC++ but not for C
+        $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU>>:-fstack-protector-all>
+        $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU>>:-fstack-protector-strong>
+        # Disable
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-dangling-else>
+        #$<$<CXX_COMPILER_ID:GNU>:-Wno-format-truncation>
+)
+add_link_options(
+        $<$<CXX_COMPILER_ID:MSVC>:/WX>   # all linker warnings as errors
 )
 
 #################################
@@ -97,7 +132,8 @@ message(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
 # Build the Unit Tests          #
 #################################
 add_executable(test_client-server-tcp
-    ./client-server-tcp.cpp
+    ./client-tcp.cpp
+    ./server-tcp.cpp
     ./test_client-server-tcp.cpp
 )
 #target_include_directories(test_client-server-tcp

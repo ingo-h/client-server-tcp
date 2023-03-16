@@ -1,39 +1,40 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-12
+// Redistribution only with this Copyright remark. Last modified: 2023-03-17
 
-#include "client-server-tcp.hpp"
+#include "client-tcp.hpp"
+#include "server-tcp.hpp"
 #include "port.hpp"
 #include <gtest/gtest.h>
 #include <thread>
 
-using compa::CSimpleTLSServer;
+using upnplib::CServerTCP;
 
-
-namespace compa {
-bool old_code{true}; // Managed in upnplib/gtest_main.inc
+namespace upnplib {
 
 TEST(EmptyTestSuite, empty_gtest) {
     //
 }
 
-} // namespace compa
+} // namespace upnplib
 
 int main(int argc, char** argv) {
-    CSimpleTLSServer* tls_svr;
+    CServerTCP* tls_svr;
+    std::thread* t1;
 
     // Instantiate simple TLS server object and catch errors on resource
     // initialization from its constructor.
     try {
-        static CSimpleTLSServer tls_svrObj;
+        static CServerTCP tls_svrObj;
         // To have the object available outside this block we need a pointer.
         // That's also why we declare it static.
         tls_svr = &tls_svrObj;
+        // Run simple TLS server with a thread.
+        static std::thread t1Obj(&CServerTCP::run, tls_svr);
+        t1 = &t1Obj;
     } catch (const std::exception& e) {
         std::clog << e.what() << "\n";
         std::exit(EXIT_FAILURE);
     }
-    // Run simple TLS server with a thread.
-    std::thread t1(&CSimpleTLSServer::run, tls_svr);
 
     // Wait until the TLS server is ready.
     constexpr int delay{50}; // polling delay in microseconds
@@ -51,7 +52,11 @@ int main(int argc, char** argv) {
 
     // Here we run the gtests as usual.
     ::testing::InitGoogleTest(&argc, argv);
-    int ret = RUN_ALL_TESTS();
-    t1.join();
-    return ret;
+    int gtest_rc = RUN_ALL_TESTS();
+
+    // Quit server
+    upnplib::quit_server();
+
+    t1->join();
+    return gtest_rc;
 }
