@@ -1,5 +1,5 @@
 # Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-# Redistribution only with this Copyright remark. Last modified: 2023-03-20
+# Redistribution only with this Copyright remark. Last modified: 2023-03-21
 
 # Configure and build with:
 # cmake -S . -B build [-D CMAKE_BUILD_TYPE=Debug -D GOOGLETEST=ON]
@@ -135,6 +135,7 @@ add_executable(test_client-server-tcp
     ./client-tcp.cpp
     ./server-tcp.cpp
     ./port_sock.cpp
+    ./addrinfo.cpp
     ./test_client-server-tcp.cpp
 )
 #target_include_directories(test_client-server-tcp

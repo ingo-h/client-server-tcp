@@ -1,9 +1,10 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-17
+// Redistribution only with this Copyright remark. Last modified: 2023-03-21
 
 #include "client-tcp.hpp"
 #include "port.hpp"
 #include "port_sock.hpp"
+#include "addrinfo.hpp"
 #include <cstring>
 #include <string>
 #include <stdexcept>
@@ -26,7 +27,7 @@ void quit_server() {
 
     // The host address must fit to the protocol family (AF_*) of the socket and
     // the addrinfo hint.
-    CGetaddrinfo ai("::1", "4433", &hints);
+    CAddrinfo ai("::1", "4433", &hints);
 
     // Connect to address.
     // -------------------

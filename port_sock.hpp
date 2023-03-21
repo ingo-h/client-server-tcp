@@ -1,7 +1,7 @@
 #ifndef UPNPLIB_INCLUDE_PORT_SOCK_HPP
 #define UPNPLIB_INCLUDE_PORT_SOCK_HPP
 // Copyright (C) 2021+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-20
+// Redistribution only with this Copyright remark. Last modified: 2023-03-21
 
 // clang-format off
 
@@ -72,51 +72,6 @@ class CSocket {
 
   private:
     SOCKET fd{INVALID_SOCKET};
-};
-
-
-// Wrap getaddrinfo() system call
-// ------------------------------
-class CGetaddrinfo {
-  public:
-    // Default constructor to provide an empty object.
-    CGetaddrinfo();
-
-    // Constructor with getting an address information.
-    CGetaddrinfo(const char* node, const char* service,
-                 const struct addrinfo* hints);
-
-    // We need a copy constructor and a copy assignment operator.
-    // Reference:
-    // https://en.wikipedia.org/wiki/Rule_of_three_(C%2B%2B_programming)
-    //
-    // copy constructor:
-    // Example: CGetaddrinfo ai2 = ai1; // ai1 is an instantiated valid object,
-    // or       CGetaddrinfo ai2{ai1};
-    CGetaddrinfo(const CGetaddrinfo& other);
-    //
-    // copy assignment operator:
-    // Example: ai2 = ai1; // ai1 and ai2 are instantiated valid objects.
-    CGetaddrinfo& operator=(const CGetaddrinfo& other);
-
-    virtual ~CGetaddrinfo();
-
-    // Reference: https://stackoverflow.com/a/8782794/5014688
-    addrinfo* operator->() const;
-
-  private:
-    // This pointer is the reason why we need a copy constructor and a copy
-    // assignment operator.
-    addrinfo* m_res{nullptr};
-
-    // This is a helper method that copies the addrinfo structure. We cannot
-    // just copy the structure that m_res pointed to (*m_res = *other.m_res;).
-    // Copy works but MS Windows failed to destruct it with
-    // freeaddrinfo(m_res);. It throws an exception "A non-recoverable error
-    // occurred during a database lookup.". So we have to go the hard way: get
-    // name information from the other address and create a new one with
-    // getaddrinfo() with that values.
-    addrinfo* copy_addrinfo(const CGetaddrinfo& other);
 };
 
 } // namespace upnplib

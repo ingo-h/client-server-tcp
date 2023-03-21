@@ -1,8 +1,9 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-20
+// Redistribution only with this Copyright remark. Last modified: 2023-03-21
 
 #include "client-tcp.hpp"
 #include "server-tcp.hpp"
+#include "addrinfo.hpp"
 #include "port.hpp"
 #include <gtest/gtest.h>
 #include <thread>
@@ -18,13 +19,13 @@ TEST(GetaddrinfoTestSuite, class_getaddrinfo) {
     hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
 
     // Get no address information
-    CGetaddrinfo ai1;
+    CAddrinfo ai1;
     // "ERROR! No address information available, must be requested beforehand.";
     EXPECT_THROW({ [[maybe_unused]] int dummy = ai1->ai_family; },
                  std::logic_error);
 
     // Get valid address information
-    CGetaddrinfo ai2("localhost", "54321", &hints);
+    CAddrinfo ai2("localhost", "54321", &hints);
 
     EXPECT_EQ(ai2->ai_family, AF_INET6);
     EXPECT_EQ(ai2->ai_socktype, SOCK_STREAM);
@@ -42,7 +43,7 @@ TEST(GetaddrinfoTestSuite, class_getaddrinfo) {
 
     // Copy address information to a new object
     { // scope for the object
-        CGetaddrinfo ai3 = ai2;
+        CAddrinfo ai3 = ai2;
 
         EXPECT_EQ(getnameinfo(ai3->ai_addr, ai3->ai_addrlen, hbuf, sizeof(hbuf),
                               sbuf, sizeof(sbuf),
@@ -68,7 +69,7 @@ TEST(GetaddrinfoTestSuite, class_getaddrinfo) {
     // Copy another address
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    CGetaddrinfo ai4("localhost", "51234", &hints);
+    CAddrinfo ai4("localhost", "51234", &hints);
 
     ai1 = ai4;
 
