@@ -1,38 +1,44 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-21
+// Redistribution only with this Copyright remark. Last modified: 2023-03-23
 
 #include "client-tcp.hpp"
 #include "server-tcp.hpp"
 #include "addrinfo.hpp"
 #include "port.hpp"
-#include <gtest/gtest.h>
+#include "gmock/gmock.h"
 #include <thread>
 
+using testing::EndsWith;
+using testing::ThrowsMessage;
 using upnplib::CServerTCP;
+
 
 namespace upnplib {
 
-TEST(GetaddrinfoTestSuite, class_getaddrinfo) {
-    addrinfo hints{};
-    hints.ai_family = AF_INET6;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
+TEST(AddrinfoTestSuite, addrinfo_successful) {
+    CAddrinfo ai1;
 
     // Get no address information
-    CAddrinfo ai1;
-    // "ERROR! No address information available, must be requested beforehand.";
-    EXPECT_THROW({ [[maybe_unused]] int dummy = ai1->ai_family; },
-                 std::logic_error);
+    EXPECT_THAT(
+        [&ai1] { [[maybe_unused]] int dummy = ai1->ai_family; },
+        ThrowsMessage<std::logic_error>(EndsWith(
+            "ERROR! No address information available, must be requested "
+            "beforehand.")));
 
     // Get valid address information
-    CAddrinfo ai2("localhost", "54321", &hints);
+    CAddrinfo ai2("localhost", "54321", AF_INET6, SOCK_STREAM,
+                  AI_PASSIVE | AI_NUMERICSERV);
 
+    // Returns what getaddrinfo() returns.
     EXPECT_EQ(ai2->ai_family, AF_INET6);
+    // Returns what getaddrinfo() returns.
     EXPECT_EQ(ai2->ai_socktype, SOCK_STREAM);
-    // Different on platforms: Ubuntu & MacOS return 6, win32 returns 0
-    // EXPECT_EQ(ai2->ai_protocol, 6);
-    // Different on platforms: Ubuntu returns 1025, MacOS & win32 return 0
-    // EXPECT_EQ(ai2->ai_flags, 1025);
+    // Different on platforms: Ubuntu & MacOS return 6, win32 returns 0.
+    // We return that what was given as argument.
+    EXPECT_EQ(ai2->ai_protocol, 0);
+    // Different on platforms: Ubuntu returns 1025, MacOS & win32 return 0.
+    // We return that what was given as argument.
+    EXPECT_EQ(ai2->ai_flags, AI_PASSIVE | AI_NUMERICSERV);
     sockaddr_in6* sa6 = (sockaddr_in6*)ai2->ai_addr;
     char addrbuf[INET6_ADDRSTRLEN]{};
     inet_ntop(ai2->ai_family, sa6->sin6_addr.s6_addr, addrbuf, sizeof(addrbuf));
@@ -67,9 +73,8 @@ TEST(GetaddrinfoTestSuite, class_getaddrinfo) {
     EXPECT_EQ(ai1->ai_socktype, SOCK_STREAM);
 
     // Copy another address
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    CAddrinfo ai4("localhost", "51234", &hints);
+    CAddrinfo ai4("localhost", "51234", AF_INET, SOCK_STREAM,
+                  AI_PASSIVE | AI_NUMERICSERV);
 
     ai1 = ai4;
 
@@ -128,7 +133,7 @@ int main(int argc, char** argv) {
     }
 
     // Here we run the gtests as usual.
-    ::testing::InitGoogleTest(&argc, argv);
+    ::testing::InitGoogleMock(&argc, argv);
     int gtest_rc = RUN_ALL_TESTS();
 
     try {

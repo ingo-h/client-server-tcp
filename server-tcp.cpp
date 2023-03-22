@@ -15,7 +15,7 @@ namespace upnplib {
 // =================
 
 CServerTCP::CServerTCP() {
-    TRACE("Construct upnplib::CServerTCP\n");
+    TRACE2(this, " Construct upnplib::CServerTCP\n");
 #ifdef _WIN32
     // Initialize Windows sochets
     // --------------------------
@@ -178,7 +178,7 @@ CServerTCP::CServerTCP() {
 
 
 CServerTCP::~CServerTCP() {
-    TRACE("Destruct upnplib::CServerTCP\n");
+    TRACE2(this, " Destruct upnplib::CServerTCP\n");
     shutdown(m_listen_sfd, SHUT_RDWR);
     freeaddrinfo(m_ai);
     CLOSE_SOCKET_P(m_listen_sfd);
@@ -191,7 +191,7 @@ CServerTCP::~CServerTCP() {
 
 void CServerTCP::run() {
     // This method can run in a thread and should be thread safe.
-    TRACE("executing upnplib::CServerTCP::run()\n");
+    TRACE2(this, " executing upnplib::CServerTCP::run()\n");
     // This flag is only set here and shows that the server is ready to accept
     // requests.
     m_ready = true;
@@ -258,7 +258,7 @@ void CServerTCP::run() {
         }
         buffer[valread] = '\0';
     }
-    TRACE("[Server] Quit.\n");
+    TRACE2(this, " [Server] Quit.\n");
 }
 
 bool CServerTCP::ready(int a_delay) const {

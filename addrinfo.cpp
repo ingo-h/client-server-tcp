@@ -11,84 +11,90 @@ namespace upnplib {
 // Provide C style addrinfo as class and wrap its system calls
 // -----------------------------------------------------------
 // Default constructor to provide an empty object.
-CAddrinfo::CAddrinfo() { TRACE("Construct default upnplib::CAddrinfo()\n"); }
+CAddrinfo::CAddrinfo() { //
+    TRACE2(this, " Construct default upnplib::CAddrinfo()\n");
+}
 
 // Constructor with getting an address information.
-CAddrinfo::CAddrinfo(const char* node, const char* service,
-                     const struct addrinfo* hints) {
-    TRACE("Construct upnplib::CAddrinfo(..) with arguments\n");
-    int ret = ::getaddrinfo(node, service, hints, &m_res);
-    if (ret != 0) {
-        throw std::runtime_error(
-            "ERROR! Failed to get address information: errid(" +
-            std::to_string(ret) + ")=\"" + ::gai_strerror(ret) + "\"");
-    }
+CAddrinfo::CAddrinfo(const std::string& a_node, const std::string& a_service,
+                     const int a_family, const int a_socktype,
+                     const int a_flags, const int a_protocol)
+    : m_node(a_node),
+      m_service(a_service), m_hints{a_flags, a_family, a_socktype, a_protocol,
+                                    {},      nullptr,  nullptr,    nullptr} {
+
+    TRACE2(this, " Construct upnplib::CAddrinfo(..) with arguments\n");
+
+    // Get new address information from the operating system.
+    m_res = get_new_addrinfo();
 }
 
 // Copy constructor
 CAddrinfo::CAddrinfo(const CAddrinfo& other) {
-    TRACE("Executing upnplib::CAddrinfo() copy constructor\n");
-    m_res = this->copy_addrinfo(other);
+    TRACE2(this, " Executing upnplib::CAddrinfo() copy constructor\n");
+    m_node = other.m_node;
+    m_service = other.m_service;
+    m_hints = other.m_hints;
+    m_res = this->get_new_addrinfo();
 }
 
 // Copy assignment operator
 CAddrinfo& CAddrinfo::operator=(const CAddrinfo& other) {
-    TRACE("Executing upnplib::CAddrinfo::operator=\n");
+    TRACE2(this, " Executing upnplib::CAddrinfo::operator=\n");
     if (this != &other) { // protect against invalid self-assignment
         // 1: allocate new memory and copy the elements
-        addrinfo* new_res = this->copy_addrinfo(other);
-        // 2: deallocate old memory
+        m_node = other.m_node;
+        m_service = other.m_service;
+        m_hints = other.m_hints;
+        // 2: deallocate memory of the target because it is an already
+        // initialized object.
         ::freeaddrinfo(m_res);
+        m_res = nullptr;
         // 3: assign the new memory to the object
-        m_res = new_res;
+        m_res = this->get_new_addrinfo();
     }
     // by convention, always return *this
     return *this;
 }
 
 CAddrinfo::~CAddrinfo() {
-    TRACE("Destruct upnplib::CAddrinfo()\n");
+    TRACE2(this, " Destruct upnplib::CAddrinfo()\n");
     ::freeaddrinfo(m_res);
     m_res = nullptr;
 }
 
-addrinfo* CAddrinfo::copy_addrinfo(const CAddrinfo& other) {
-    TRACE("Executing upnplib::CAddrinfo::copy_addrinfo()\n");
+addrinfo* CAddrinfo::get_new_addrinfo() {
+    TRACE2(this, " Executing upnplib::CAddrinfo::get_new_addrinfo()\n");
 
-    // Get name information from the other address.
-    char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
-    int ret = ::getnameinfo(other.m_res->ai_addr, other.m_res->ai_addrlen, hbuf,
-                            sizeof(hbuf), sbuf, sizeof(sbuf),
-                            NI_NUMERICHOST | NI_NUMERICSERV);
-    if (ret != 0) {
-        throw std::runtime_error(
-            "ERROR! Failed to get name information from address: errid(" +
-            std::to_string(ret) + ")=\"" + ::gai_strerror(ret) + "\"");
-    }
-
-    // Get new address information with values from the other address.
-    addrinfo hints{};
-    hints.ai_family = other.m_res->ai_family;
-    hints.ai_socktype = other.m_res->ai_socktype;
-    hints.ai_protocol = other.m_res->ai_protocol;
-    hints.ai_flags = other.m_res->ai_flags;
-
+    // Get new address information with cached hints. This should always return
+    // the same address info.
     addrinfo* new_res{nullptr};
 
-    ret = ::getaddrinfo(hbuf, sbuf, &hints, &new_res);
+    int ret =
+        ::getaddrinfo(m_node.c_str(), m_service.c_str(), &m_hints, &new_res);
     if (ret != 0) {
         throw std::runtime_error(
-            "ERROR! Failed to get address information: errid(" +
+            "[" + std::to_string(__LINE__) +
+            "] ERROR! Failed to get address information: errid(" +
             std::to_string(ret) + ")=\"" + ::gai_strerror(ret) + "\"");
     }
+
+    // Different on platforms: Ubuntu & MacOS return protocol number, win32
+    // returns 0. We just return what was requested by the user.
+    new_res->ai_protocol = m_hints.ai_protocol;
+    // Different on platforms: Ubuntu returns set flags, MacOS & win32 return 0.
+    // We just return what was requested by the user.
+    new_res->ai_flags = m_hints.ai_flags;
 
     return new_res;
 }
 
 addrinfo* CAddrinfo::operator->() const {
     if (m_res == nullptr) {
-        throw std::logic_error("ERROR! No address information available, must "
-                               "be requested beforehand.");
+        throw std::logic_error(
+            "[" + std::to_string(__LINE__) +
+            "] ERROR! No address information available, must "
+            "be requested beforehand.");
     }
     return m_res;
 }

@@ -68,9 +68,11 @@
 // std::clog.clear();
 #ifdef UPNPLIB_WITH_TRACE
   #include <iostream>
-  #define TRACE(s) std::clog<<"TRACE("<<__LINE__<<"): "<<(s)
+  #define TRACE(s) std::clog<<"TRACE["<<__LINE__<<"]: "<<(s)
+  #define TRACE2(a, b) std::clog<<"TRACE["<<__LINE__<<"]: "<<(a)<<(b)
 #else
   #define TRACE(s)
+  #define TRACE2(a, b)
 #endif
 
 // clang-format on

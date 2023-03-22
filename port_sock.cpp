@@ -11,7 +11,7 @@ namespace upnplib {
 
 #ifdef _MSC_VER
 CWSAStartup::CWSAStartup() {
-    TRACE("Construct upnplib::CWSAStartup\n");
+    TRACE2(this, " Construct upnplib::CWSAStartup\n");
     WSADATA wsaData;
     int rc = ::WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (rc != 0) {
@@ -22,7 +22,7 @@ CWSAStartup::CWSAStartup() {
 }
 
 CWSAStartup::~CWSAStartup() {
-    TRACE("Destruct upnplib::CWSAStartup\n");
+    TRACE2(this, " Destruct upnplib::CWSAStartup\n");
     ::WSACleanup();
 }
 #endif // MSC_VER
@@ -31,7 +31,7 @@ CWSAStartup::~CWSAStartup() {
 // Wrap socket() system call
 // -------------------------
 CSocket::CSocket(int domain, int type, int protocol) {
-    TRACE("Construct upnplib::CSocket\n");
+    TRACE2(this, " Construct upnplib::CSocket\n");
     this->fd = ::socket(domain, type, protocol);
     if (this->fd == INVALID_SOCKET) {
 #ifdef _MSC_VER
@@ -48,7 +48,7 @@ CSocket::CSocket(int domain, int type, int protocol) {
 }
 
 CSocket::~CSocket() {
-    TRACE("Destruct upnplib::CSocket\n");
+    TRACE2(this, " Destruct upnplib::CSocket\n");
     CLOSE_SOCKET_P(this->fd);
 }
 

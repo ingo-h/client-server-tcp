@@ -19,15 +19,11 @@ void quit_server() {
 
     // Get address information that should be connected.
     // -------------------------------------------------
-    addrinfo hints{};
-    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM;
-    // For host and port only numeric to avoid expensive name resolution.
-    hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
-
     // The host address must fit to the protocol family (AF_*) of the socket and
-    // the addrinfo hint.
-    CAddrinfo ai("::1", "4433", &hints);
+    // the addrinfo hint. Host and port flags set to numeric use to avoid
+    // expensive name resolution.
+    CAddrinfo ai("::1", "4433", AF_UNSPEC, SOCK_STREAM,
+                 AI_NUMERICHOST | AI_NUMERICSERV);
 
     // Connect to address.
     // -------------------
