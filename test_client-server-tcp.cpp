@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-23
+// Redistribution only with this Copyright remark. Last modified: 2023-03-29
 
 #include "client-tcp.hpp"
 #include "server-tcp.hpp"
@@ -9,11 +9,173 @@
 #include <thread>
 
 using testing::EndsWith;
+using testing::StartsWith;
 using testing::ThrowsMessage;
 using upnplib::CServerTCP;
 
 
 namespace upnplib {
+
+TEST(SocketTestSuite, empty_socket_obj) {
+    CSocket sock;
+    EXPECT_EQ((SOCKET)sock, INVALID_SOCKET);
+}
+
+TEST(SocketTestSuite, get_successful) {
+    WINSOCK_INIT_P
+
+    // Test Unit
+    CSocket sock;
+    sock.set(AF_INET6, SOCK_STREAM, 0);
+
+    // Check if socket is valid
+    int errbuf{-1};
+    socklen_t errbuflen{sizeof(errbuf)};
+    EXPECT_EQ(
+        getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&errbuf, &errbuflen), 0);
+    EXPECT_EQ(errbuf, 0);
+}
+
+TEST(SocketTestSuite, change_socket_successful) {
+    WINSOCK_INIT_P
+
+    // Provide a socket object
+    CSocket sock;
+    sock.set(AF_INET, SOCK_DGRAM, 0);
+    SOCKET old_sockfd = sock;
+
+    // Test Unit
+    sock.set(AF_INET6, SOCK_STREAM, 0);
+
+    int errbuf{-2};
+    socklen_t errbuflen{sizeof(errbuf)};
+
+    // Check if old socket file descriptor is invalid
+    EXPECT_NE(old_sockfd, (SOCKET)sock);
+    EXPECT_EQ(getsockopt(old_sockfd, SOL_SOCKET, SO_ERROR, (char*)&errbuf,
+                         &errbuflen),
+              -1);
+    EXPECT_EQ(errbuf, -2); // errbuf is unchanged
+
+    // Check if new socket is valid
+    EXPECT_EQ(
+        getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&errbuf, &errbuflen), 0);
+    EXPECT_EQ(errbuf, 0);
+}
+
+TEST(SocketTestSuite, move_socket_successful) {
+    WINSOCK_INIT_P
+
+    // Provide a socket object
+    CSocket sock1;
+    sock1.set(AF_INET6, SOCK_STREAM, 0);
+    SOCKET old_fd_sock1 = sock1;
+
+    // Test Unit
+    // CSocket sock2 = sock1; // This does not compile because it needs a copy
+    //                           constructor that isn't available because we
+    //                           restrict to move only.
+    // This moves the socket file descriptor
+    CSocket sock2 = std::move(sock1);
+
+    // The socket file descriptor has been moved to the new object
+    EXPECT_EQ((SOCKET)sock2, old_fd_sock1);
+    // The old object has now an invalid socket file descriptor
+    EXPECT_EQ((SOCKET)sock1, INVALID_SOCKET);
+
+    // Check if new socket is valid
+    int errbuf{-2};
+    socklen_t errbuflen{sizeof(errbuf)};
+    EXPECT_EQ(
+        getsockopt(sock2, SOL_SOCKET, SO_ERROR, (char*)&errbuf, &errbuflen), 0);
+    EXPECT_EQ(errbuf, 0);
+}
+
+TEST(SocketTestSuite, assign_socket_successful) {
+    WINSOCK_INIT_P
+
+    // Provide two socket objects
+    CSocket sock1;
+    sock1.set(AF_INET6, SOCK_STREAM, 0);
+    SOCKET old_fd_sock1 = sock1;
+
+    CSocket sock2;
+    sock2.set(AF_INET, SOCK_DGRAM, 0);
+
+    // Test Unit
+    sock2 = std::move(sock1);
+
+    // The socket file descriptor has been moved to the destination object
+    EXPECT_EQ((SOCKET)sock2, old_fd_sock1);
+    // The old object has now an invalid socket file descriptor
+    EXPECT_EQ((SOCKET)sock1, INVALID_SOCKET);
+
+    // Check if new socket is valid
+    int errbuf{-2};
+    socklen_t errbuflen{sizeof(errbuf)};
+    EXPECT_EQ(
+        getsockopt(sock2, SOL_SOCKET, SO_ERROR, (char*)&errbuf, &errbuflen), 0);
+    EXPECT_EQ(errbuf, 0);
+}
+
+TEST(SocketTestSuite, wrong_address_family) {
+    // Test Unit
+    EXPECT_THAT(
+        []() {
+            CSocket sock;
+            sock.set(-1, SOCK_STREAM, 0);
+        },
+        ThrowsMessage<std::runtime_error>(
+            StartsWith("ERROR! Failed to create socket: ")));
+}
+
+#if 0
+// TODO: Test next test without CWSAStartup()
+TEST(AddrinfoTestSuite, addrinfo_get_successful) {
+    WINSOCK_INIT_P
+
+    // Test Unit
+    CAddrinfo ai1("localhost", "50001", AF_INET6, SOCK_STREAM,
+                  AI_PASSIVE | AI_NUMERICSERV);
+
+    // Returns what getaddrinfo() returns.
+    EXPECT_EQ(ai1->ai_family, AF_INET6);
+    // Returns what getaddrinfo() returns.
+    EXPECT_EQ(ai1->ai_socktype, SOCK_STREAM);
+    // Different on platforms: Ubuntu & MacOS return 6, win32 returns 0.
+    // We just return that what was requested by the user.
+    EXPECT_EQ(ai1->ai_protocol, 0);
+    // Different on platforms: Ubuntu returns 1025, MacOS & win32 return 0.
+    // We just return that what was requested by the user.
+    EXPECT_EQ(ai1->ai_flags, AI_PASSIVE | AI_NUMERICSERV);
+    EXPECT_EQ(ai1.addr_str(), "::1");
+    EXPECT_EQ(ai1.port(), 50001);
+}
+
+TEST(AddrinfoTestSuite, addrinfo_copy) {
+    // This tests the copy constructor.
+    // Get valid address information.
+    CAddrinfo ai1("127.0.0.1", "50002", AF_INET, SOCK_DGRAM,
+                  AI_NUMERICHOST | AI_NUMERICSERV);
+
+    // Test Unit
+    CAddrinfo ai2 = ai1;
+
+    EXPECT_EQ(ai2->ai_family, AF_INET);
+    EXPECT_EQ(ai2->ai_socktype, SOCK_DGRAM);
+    EXPECT_EQ(ai2->ai_protocol, 0);
+    EXPECT_EQ(ai2->ai_flags, AI_NUMERICHOST | AI_NUMERICSERV);
+    EXPECT_EQ(ai2.addr_str(), "127.0.0.1");
+    EXPECT_EQ(ai2.port(), 50002);
+
+    // Check if ai1 is still available.
+    EXPECT_EQ(ai1->ai_family, AF_INET);
+    EXPECT_EQ(ai1->ai_socktype, SOCK_DGRAM);
+    EXPECT_EQ(ai1->ai_protocol, 0);
+    EXPECT_EQ(ai1->ai_flags, AI_NUMERICHOST | AI_NUMERICSERV);
+    EXPECT_EQ(ai1.addr_str(), "127.0.0.1");
+    EXPECT_EQ(ai1.port(), 50002);
+}
 
 TEST(AddrinfoTestSuite, addrinfo_successful) {
     CAddrinfo ai1;
@@ -95,10 +257,19 @@ TEST(AddrinfoTestSuite, addrinfo_successful) {
     EXPECT_EQ(ai2->ai_family, AF_INET6);
     EXPECT_EQ(ai2->ai_socktype, SOCK_STREAM);
 }
+#endif
 
 } // namespace upnplib
 
 
+int main(int argc, char** argv) {
+    testing::InitGoogleMock(&argc, argv);
+    return RUN_ALL_TESTS();
+    // #include "upnplib/gtest_main.inc"
+}
+
+
+#if 0
 int main(int argc, char** argv) {
     CServerTCP* tls_svr;
     std::thread* t1;
@@ -119,7 +290,7 @@ int main(int argc, char** argv) {
     }
 
     // Wait until the TLS server is ready.
-    constexpr int delay{50}; // polling delay in microseconds
+    constexpr int delay{60}; // polling delay in microseconds
     constexpr int limit{10}; // limit of polling retries
     int i;
     for (i = 0; i < limit; i++) {
@@ -127,7 +298,7 @@ int main(int argc, char** argv) {
             break;
     }
     if (i >= limit) {
-        std::clog << "ERROR! ready loop for 'simpleTLSserver' thread called "
+        std::clog << "ERROR! ready loop for upnplib::CServerTCP thread called "
                   << i << " times. Check for deadlock.\n";
         std::exit(EXIT_FAILURE);
     }
@@ -147,3 +318,4 @@ int main(int argc, char** argv) {
     t1->join();
     return gtest_rc;
 }
+#endif

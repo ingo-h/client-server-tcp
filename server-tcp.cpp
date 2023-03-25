@@ -33,8 +33,7 @@ CServerTCP::CServerTCP() {
 
     // Get a socket.
     // -------------
-    // Should be finished with CLOSE_SOCKET_P()
-    m_listen_sfd = socket(AF_INET6, SOCK_STREAM, 0);
+    m_listen_sfd.set(AF_INET6, SOCK_STREAM, 0);
     if (m_listen_sfd == INVALID_SOCKET) {
         // Cleanup already allocated resources because the destructor isn't
         // called with throwing an exception here.
@@ -61,14 +60,12 @@ CServerTCP::CServerTCP() {
         // called with throwing an exception here.
 #ifdef _WIN32
         int err_no = WSAGetLastError();
-        CLOSE_SOCKET_P(m_listen_sfd);
         WSACleanup();
         throw std::runtime_error("[Server] ERROR! Failed to get socket option "
                                  "IPV6_V6ONLY: WSAGetLastError()=" +
                                  std::to_string(err_no));
 #else
         int err_no = errno;
-        CLOSE_SOCKET_P(m_listen_sfd);
         throw std::runtime_error(
             "[Server] ERROR! Failed to get socket option IPV6_V6ONLY: errno(" +
             std::to_string(err_no) + ")=\"" + std::strerror(err_no) + "\"");
@@ -88,7 +85,6 @@ CServerTCP::CServerTCP() {
             // called with throwing an exception here.
 #ifdef _WIN32
             int err_no = WSAGetLastError();
-            CLOSE_SOCKET_P(m_listen_sfd);
             WSACleanup();
             throw std::runtime_error(
                 "[Server] ERROR! Failed to set socket option "
@@ -96,7 +92,6 @@ CServerTCP::CServerTCP() {
                 std::to_string(err_no));
 #else
             int err_no = errno;
-            CLOSE_SOCKET_P(m_listen_sfd);
             throw std::runtime_error("[Server] ERROR! Failed to set socket "
                                      "option IPV6_V6ONLY: errno(" +
                                      std::to_string(err_no) + ")=\"" +
@@ -116,9 +111,6 @@ CServerTCP::CServerTCP() {
 
     int ret = getaddrinfo(nullptr, "4433", &hints, &m_ai);
     if (ret != 0) {
-        // Cleanup already allocated resources because the destructor isn't
-        // called with throwing an exception here.
-        CLOSE_SOCKET_P(m_listen_sfd);
 #ifdef _WIN32
         // Cleanup Windows sochets
         WSACleanup();
@@ -136,7 +128,6 @@ CServerTCP::CServerTCP() {
 #ifdef _WIN32
         int err_no = WSAGetLastError();
         freeaddrinfo(m_ai);
-        CLOSE_SOCKET_P(m_listen_sfd);
         WSACleanup();
         throw std::runtime_error("[Server] ERROR! Failed to bind a socket to "
                                  "an address: WSAGetLastError()=" +
@@ -144,7 +135,6 @@ CServerTCP::CServerTCP() {
 #else
         int err_no = errno;
         freeaddrinfo(m_ai);
-        CLOSE_SOCKET_P(m_listen_sfd);
         throw std::runtime_error(
             "[Server] ERROR! Failed to bind a socket to an address: errno(" +
             std::to_string(err_no) + ")=\"" + std::strerror(err_no) + "\".");
@@ -160,7 +150,6 @@ CServerTCP::CServerTCP() {
 #ifdef _WIN32
         int err_no = WSAGetLastError();
         freeaddrinfo(m_ai);
-        CLOSE_SOCKET_P(m_listen_sfd);
         WSACleanup();
         throw std::runtime_error("[Server] ERROR! Failed to bind a socket to "
                                  "an address: WSAGetLastError()=" +
@@ -168,7 +157,6 @@ CServerTCP::CServerTCP() {
 #else
         int err_no = errno;
         freeaddrinfo(m_ai);
-        CLOSE_SOCKET_P(m_listen_sfd);
         throw std::runtime_error(
             "[Server] ERROR! Failed to bind a socket to an address: errno(" +
             std::to_string(err_no) + ")=\"" + std::strerror(err_no) + "\".");
@@ -181,7 +169,6 @@ CServerTCP::~CServerTCP() {
     TRACE2(this, " Destruct upnplib::CServerTCP\n");
     shutdown(m_listen_sfd, SHUT_RDWR);
     freeaddrinfo(m_ai);
-    CLOSE_SOCKET_P(m_listen_sfd);
 #ifdef _WIN32
     // Cleanup Windows sochets
     WSACleanup();
@@ -201,7 +188,6 @@ void CServerTCP::run() {
 
     // Accept an incomming request. This call is blocking.
     // ---------------------------------------------------
-    // Should be finished with CLOSE_SOCKET_P().
     // Method will quit if we have received a single "Q" string (['Q', '\0']).
     ssize_t valread{};
     while (buffer[0] != 'Q' || valread != 1) {

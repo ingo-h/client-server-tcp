@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-21
+// Redistribution only with this Copyright remark. Last modified: 2023-03-25
 
 #include "addrinfo.hpp"
 #include "port.hpp"
@@ -10,11 +10,6 @@ namespace upnplib {
 
 // Provide C style addrinfo as class and wrap its system calls
 // -----------------------------------------------------------
-// Default constructor to provide an empty object.
-CAddrinfo::CAddrinfo() { //
-    TRACE2(this, " Construct default upnplib::CAddrinfo()\n");
-}
-
 // Constructor with getting an address information.
 CAddrinfo::CAddrinfo(const std::string& a_node, const std::string& a_service,
                      const int a_family, const int a_socktype,
@@ -89,14 +84,28 @@ addrinfo* CAddrinfo::get_new_addrinfo() {
     return new_res;
 }
 
-addrinfo* CAddrinfo::operator->() const {
-    if (m_res == nullptr) {
-        throw std::logic_error(
-            "[" + std::to_string(__LINE__) +
-            "] ERROR! No address information available, must "
-            "be requested beforehand.");
+addrinfo* CAddrinfo::operator->() const { return m_res; }
+
+std::string CAddrinfo::addr_str() const {
+    TRACE2(this, " Executing upnplib::CAddrinfo::addr_str()\n");
+    char addrbuf[INET6_ADDRSTRLEN]{};
+
+    if (m_res->ai_family == AF_INET6) {
+        sockaddr_in6* sa6 = (sockaddr_in6*)m_res->ai_addr;
+        inet_ntop(m_res->ai_family, &sa6->sin6_addr.s6_addr, addrbuf,
+                  sizeof(addrbuf));
+    } else {
+        sockaddr_in* sa = (sockaddr_in*)m_res->ai_addr;
+        inet_ntop(m_res->ai_family, &sa->sin_addr.s_addr, addrbuf,
+                  sizeof(addrbuf));
     }
-    return m_res;
+
+    return std::string(addrbuf);
+}
+
+uint16_t CAddrinfo::port() const {
+    // port for AF_INET6 is also valid for AF_INET
+    return ntohs(((sockaddr_in6*)m_res->ai_addr)->sin6_port);
 }
 
 } // namespace upnplib

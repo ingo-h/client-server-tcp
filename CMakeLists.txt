@@ -1,5 +1,5 @@
 # Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-# Redistribution only with this Copyright remark. Last modified: 2023-03-23
+# Redistribution only with this Copyright remark. Last modified: 2023-03-29
 
 # Configure and build with:
 # cmake -S . -B build [-D CMAKE_BUILD_TYPE=Debug -D GOOGLETEST=ON]
@@ -70,7 +70,7 @@ add_compile_options(
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wpedantic>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wuninitialized>
-        #$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wdeprecated>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wdeprecated>
         $<$<CXX_COMPILER_ID:GNU>:-Wsuggest-override> # Only valid for C++/ObjC++ but not for C
         $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU>>:-fstack-protector-all>
         $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU>>:-fstack-protector-strong>
@@ -120,7 +120,7 @@ if(GOOGLETEST)
     # This caches googletest_SOURCE_DIR, googletest_BINARY_DIR and googletest_POPULATED.
     FetchContent_MakeAvailable(googletest)
 
-    link_libraries(gtest gmock
+    link_libraries(gtest gmock gtest_main gmock_main
     )
 
     message(CHECK_PASS "done")

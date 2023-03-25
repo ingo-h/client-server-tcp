@@ -22,7 +22,7 @@ class CServerTCP {
 
   private:
     bool m_ready{false};
-    SOCKET m_listen_sfd{INVALID_SOCKET};
+    CSocket m_listen_sfd;
     addrinfo* m_ai;
 };
 

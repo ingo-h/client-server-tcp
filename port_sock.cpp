@@ -1,5 +1,5 @@
 // Copyright (C) 2021+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-21
+// Redistribution only with this Copyright remark. Last modified: 2023-03-28
 
 #include "port_sock.hpp"
 #include "port.hpp"
@@ -30,10 +30,33 @@ CWSAStartup::~CWSAStartup() {
 
 // Wrap socket() system call
 // -------------------------
-CSocket::CSocket(int domain, int type, int protocol) {
-    TRACE2(this, " Construct upnplib::CSocket\n");
-    this->fd = ::socket(domain, type, protocol);
-    if (this->fd == INVALID_SOCKET) {
+CSocket::CSocket() { TRACE2(this, " Construct upnplib::CSocket()\n"); }
+
+CSocket::CSocket(CSocket&& that) {
+    TRACE2(this, " Construct move upnplib::CSocket()\n");
+    fd = that.fd;
+    that.fd = INVALID_SOCKET;
+}
+
+CSocket& CSocket::operator=(CSocket that) {
+    TRACE2(this, " Assignment operator upnplib::CSocket()\n");
+    std::swap(fd, that.fd);
+    return *this;
+}
+
+CSocket::~CSocket() {
+    TRACE2(this, " Destruct upnplib::CSocket()\n");
+    CLOSE_SOCKET_P(this->fd);
+    this->fd = INVALID_SOCKET;
+}
+
+void CSocket::set(int domain, int type, int protocol) {
+    TRACE2(this, " Executing upnplib::CSocket::set()\n");
+
+    // We get first a new socket before closing the old one to be sure that we
+    // do not get the same one again.
+    SOCKET sfd = ::socket(domain, type, protocol);
+    if (sfd == INVALID_SOCKET) {
 #ifdef _MSC_VER
         int err_no = ::WSAGetLastError();
         throw std::runtime_error(
@@ -45,13 +68,10 @@ CSocket::CSocket(int domain, int type, int protocol) {
                                  std::strerror(errno) + "\"");
 #endif
     }
-}
-
-CSocket::~CSocket() {
-    TRACE2(this, " Destruct upnplib::CSocket\n");
     CLOSE_SOCKET_P(this->fd);
+    this->fd = sfd;
 }
 
-CSocket::operator SOCKET() const { return this->fd; }
+CSocket::operator SOCKET&() { return this->fd; }
 
 } // namespace upnplib
