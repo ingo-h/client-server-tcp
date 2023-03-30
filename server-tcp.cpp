@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-17
+// Redistribution only with this Copyright remark. Last modified: 2023-03-30
 
 #include "server-tcp.hpp"
 #include "port.hpp"
@@ -15,7 +15,7 @@ namespace upnplib {
 // =================
 
 CServerTCP::CServerTCP() {
-    TRACE2(this, " Construct upnplib::CServerTCP\n");
+    TRACE2(this, " Construct upnplib::CServerTCP");
 #ifdef _WIN32
     // Initialize Windows sochets
     // --------------------------
@@ -166,7 +166,7 @@ CServerTCP::CServerTCP() {
 
 
 CServerTCP::~CServerTCP() {
-    TRACE2(this, " Destruct upnplib::CServerTCP\n");
+    TRACE2(this, " Destruct upnplib::CServerTCP");
     shutdown(m_listen_sfd, SHUT_RDWR);
     freeaddrinfo(m_ai);
 #ifdef _WIN32
@@ -178,7 +178,7 @@ CServerTCP::~CServerTCP() {
 
 void CServerTCP::run() {
     // This method can run in a thread and should be thread safe.
-    TRACE2(this, " executing upnplib::CServerTCP::run()\n");
+    TRACE2(this, " executing upnplib::CServerTCP::run()");
     // This flag is only set here and shows that the server is ready to accept
     // requests.
     m_ready = true;
@@ -244,7 +244,7 @@ void CServerTCP::run() {
         }
         buffer[valread] = '\0';
     }
-    TRACE2(this, " [Server] Quit.\n");
+    TRACE2(this, " [Server] Quit.");
 }
 
 bool CServerTCP::ready(int a_delay) const {

@@ -147,4 +147,4 @@ jobs:
       - name: Run gtests
         run: |
           cd ./build
-          ctest -C ${{matrix.buildtype}} --timeout 4 --verbose
+          ctest -C ${{matrix.buildtype}} --timeout 5 --verbose

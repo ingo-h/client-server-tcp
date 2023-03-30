@@ -1,5 +1,5 @@
 // Copyright (C) 2021+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-28
+// Redistribution only with this Copyright remark. Last modified: 2023-03-30
 
 #include "port_sock.hpp"
 #include "port.hpp"
@@ -11,7 +11,7 @@ namespace upnplib {
 
 #ifdef _MSC_VER
 CWSAStartup::CWSAStartup() {
-    TRACE2(this, " Construct upnplib::CWSAStartup\n");
+    TRACE2(this, " Construct upnplib::CWSAStartup");
     WSADATA wsaData;
     int rc = ::WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (rc != 0) {
@@ -22,7 +22,7 @@ CWSAStartup::CWSAStartup() {
 }
 
 CWSAStartup::~CWSAStartup() {
-    TRACE2(this, " Destruct upnplib::CWSAStartup\n");
+    TRACE2(this, " Destruct upnplib::CWSAStartup");
     ::WSACleanup();
 }
 #endif // MSC_VER
@@ -30,28 +30,32 @@ CWSAStartup::~CWSAStartup() {
 
 // Wrap socket() system call
 // -------------------------
-CSocket::CSocket() { TRACE2(this, " Construct upnplib::CSocket()\n"); }
+// Constructor
+CSocket::CSocket() { TRACE2(this, " Construct upnplib::CSocket()"); }
 
+// Move constructor
 CSocket::CSocket(CSocket&& that) {
-    TRACE2(this, " Construct move upnplib::CSocket()\n");
+    TRACE2(this, " Construct move upnplib::CSocket()");
     fd = that.fd;
     that.fd = INVALID_SOCKET;
 }
 
+// Assignment operator (parameter as value)
 CSocket& CSocket::operator=(CSocket that) {
-    TRACE2(this, " Assignment operator upnplib::CSocket()\n");
+    TRACE2(this, " Assignment operator upnplib::CSocket()");
     std::swap(fd, that.fd);
     return *this;
 }
 
+// Destructor
 CSocket::~CSocket() {
-    TRACE2(this, " Destruct upnplib::CSocket()\n");
+    TRACE2(this, " Destruct upnplib::CSocket()");
     CLOSE_SOCKET_P(this->fd);
-    this->fd = INVALID_SOCKET;
 }
 
+// Setter for the socket
 void CSocket::set(int domain, int type, int protocol) {
-    TRACE2(this, " Executing upnplib::CSocket::set()\n");
+    TRACE2(this, " Executing upnplib::CSocket::set()");
 
     // We get first a new socket before closing the old one to be sure that we
     // do not get the same one again.
@@ -72,6 +76,7 @@ void CSocket::set(int domain, int type, int protocol) {
     this->fd = sfd;
 }
 
+// Get the socket
 CSocket::operator SOCKET&() { return this->fd; }
 
 } // namespace upnplib

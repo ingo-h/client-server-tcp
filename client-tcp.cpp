@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-21
+// Redistribution only with this Copyright remark. Last modified: 2023-03-30
 
 #include "client-tcp.hpp"
 #include "port.hpp"
@@ -61,7 +61,7 @@ void quit_server() {
     }
 
     // closing the conection
-    TRACE("[Client] \"Q\" sent (Quit server).\n");
+    TRACE("[Client] \"Q\" sent (Quit server).");
 }
 
 } // namespace upnplib

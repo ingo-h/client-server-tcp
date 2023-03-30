@@ -1,7 +1,7 @@
 #ifndef UPNPLIB_INCLUDE_PORT_SOCK_HPP
 #define UPNPLIB_INCLUDE_PORT_SOCK_HPP
 // Copyright (C) 2021+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-28
+// Redistribution only with this Copyright remark. Last modified: 2023-03-29
 
 // clang-format off
 
@@ -15,7 +15,7 @@
 
   // _MSC_VER has SOCKET defined but unsigned and not a file descriptor.
   #define sa_family_t ADDRESS_FAMILY
-  #define CLOSE_SOCKET_P closesocket
+  #define CLOSE_SOCKET_P(s) do { ::closesocket((s)); (s)=INVALID_SOCKET; } while ( 0 )
 
   // For shutdown() send/receive on a socket there are other constant names.
   #define SHUT_RD SD_RECEIVE
@@ -34,7 +34,7 @@
   // SOCKET is unsigned and is not a file descriptor.
   typedef int SOCKET;
   // Posix has sa_family_t defined.
-  #define CLOSE_SOCKET_P close
+  #define CLOSE_SOCKET_P(s) do { ::close((s)); (s)=INVALID_SOCKET; } while ( 0 )
 
   // socket() returns INVALID_SOCKET on win32 and is unsigned.
   #define INVALID_SOCKET (-1)
@@ -78,6 +78,7 @@ class CSocket {
     // CSocket(const CSocket&);
 
     // Move constructor
+    // Constructor
     CSocket(CSocket&&);
 
     // Assignment operator
@@ -90,11 +91,11 @@ class CSocket {
     // Destructor
     virtual ~CSocket();
 
-    // Get the socket, e.g.: CSocket sock; SOCKET sfd = sock;
-    operator SOCKET&();
-
     // Setter for the socket
     void set(int domain, int type, int protocol);
+
+    // Get the socket, e.g.: CSocket sock; SOCKET sfd = sock;
+    operator SOCKET&();
 
   private:
     SOCKET fd{INVALID_SOCKET};
