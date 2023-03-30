@@ -33,7 +33,10 @@ CServerTCP::CServerTCP() {
 
     // Get a socket.
     // -------------
-    m_listen_sfd.set(AF_INET6, SOCK_STREAM, 0);
+    {
+        CSocket sock(AF_INET6, SOCK_STREAM);
+        m_listen_sfd = std::move(sock);
+    }
     if (m_listen_sfd == INVALID_SOCKET) {
         // Cleanup already allocated resources because the destructor isn't
         // called with throwing an exception here.

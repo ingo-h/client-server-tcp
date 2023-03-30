@@ -27,9 +27,7 @@ TEST(SocketTestSuite, get_successful) {
     WINSOCK_INIT_P
 
     // Test Unit
-    CSocket sock;
-    EXPECT_EQ((SOCKET)sock, INVALID_SOCKET);
-    sock.set(AF_INET6, SOCK_STREAM, 0);
+    CSocket sock(AF_INET6, SOCK_STREAM);
 
     // Check if socket is valid
     EXPECT_NE((SOCKET)sock, INVALID_SOCKET);
@@ -40,39 +38,11 @@ TEST(SocketTestSuite, get_successful) {
     EXPECT_EQ(errbuf, 0);
 }
 
-TEST(SocketTestSuite, change_socket_successful) {
-    WINSOCK_INIT_P
-
-    // Provide a socket object
-    CSocket sock;
-    sock.set(AF_INET, SOCK_DGRAM, 0);
-    SOCKET old_sockfd = sock;
-
-    // Test Unit
-    sock.set(AF_INET6, SOCK_STREAM, 0);
-
-    int errbuf{-0xAA};
-    socklen_t errbuflen{sizeof(errbuf)};
-
-    // Check if old socket file descriptor is invalid
-    EXPECT_NE(old_sockfd, (SOCKET)sock);
-    EXPECT_EQ(getsockopt(old_sockfd, SOL_SOCKET, SO_ERROR, (char*)&errbuf,
-                         &errbuflen),
-              -1);
-    EXPECT_EQ(errbuf, -0xAA); // errbuf is unchanged
-
-    // Check if new socket is valid
-    EXPECT_EQ(
-        getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&errbuf, &errbuflen), 0);
-    EXPECT_EQ(errbuf, 0);
-}
-
 TEST(SocketTestSuite, move_socket_successful) {
     WINSOCK_INIT_P
 
     // Provide a socket object
-    CSocket sock1;
-    sock1.set(AF_INET6, SOCK_STREAM, 0);
+    CSocket sock1(AF_INET6, SOCK_STREAM);
     SOCKET old_fd_sock1 = sock1;
 
     // Test Unit
@@ -88,7 +58,7 @@ TEST(SocketTestSuite, move_socket_successful) {
     EXPECT_EQ((SOCKET)sock1, INVALID_SOCKET);
 
     // Check if new socket is valid
-    int errbuf{-2};
+    int errbuf{-0xAA55};
     socklen_t errbuflen{sizeof(errbuf)};
     EXPECT_EQ(
         getsockopt(sock2, SOL_SOCKET, SO_ERROR, (char*)&errbuf, &errbuflen), 0);
@@ -99,12 +69,10 @@ TEST(SocketTestSuite, assign_socket_successful) {
     WINSOCK_INIT_P
 
     // Provide two socket objects
-    CSocket sock1;
-    sock1.set(AF_INET6, SOCK_STREAM, 0);
+    CSocket sock1(AF_INET6, SOCK_STREAM);
     SOCKET old_fd_sock1 = sock1;
 
     CSocket sock2;
-    sock2.set(AF_INET, SOCK_DGRAM, 0);
 
     // Test Unit
     sock2 = std::move(sock1);
@@ -115,7 +83,7 @@ TEST(SocketTestSuite, assign_socket_successful) {
     EXPECT_EQ((SOCKET)sock1, INVALID_SOCKET);
 
     // Check if new socket is valid
-    int errbuf{-2};
+    int errbuf{-0xA5A5};
     socklen_t errbuflen{sizeof(errbuf)};
     EXPECT_EQ(
         getsockopt(sock2, SOL_SOCKET, SO_ERROR, (char*)&errbuf, &errbuflen), 0);
@@ -124,13 +92,9 @@ TEST(SocketTestSuite, assign_socket_successful) {
 
 TEST(SocketTestSuite, set_wrong_address_family) {
     // Test Unit
-    EXPECT_THAT(
-        []() {
-            CSocket sock;
-            sock.set(-1, SOCK_STREAM, 0);
-        },
-        ThrowsMessage<std::runtime_error>(
-            StartsWith("ERROR! Failed to create socket: ")));
+    EXPECT_THAT([]() { CSocket sock(-1, SOCK_STREAM); },
+                ThrowsMessage<std::runtime_error>(
+                    StartsWith("ERROR! Failed to create socket: ")));
 }
 
 TEST(AddrinfoTestSuite, get_successful) {

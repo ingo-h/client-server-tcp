@@ -15,8 +15,7 @@ void quit_server() {
     WINSOCK_INIT_P
 
     // Get a socket.
-    CSocket sock;
-    sock.set(AF_INET6, SOCK_STREAM, 0);
+    CSocket sock(AF_INET6, SOCK_STREAM);
 
     // Get address information that should be connected.
     // -------------------------------------------------
