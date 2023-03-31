@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-30
+// Redistribution only with this Copyright remark. Last modified: 2023-04-01
 
 #include "client-tcp.hpp"
 #include "server-tcp.hpp"
@@ -98,6 +98,7 @@ TEST(SocketTestSuite, set_wrong_address_family) {
 }
 
 TEST(AddrinfoTestSuite, get_successful) {
+    // If node is not empty  AI_PASSIVE is ignored.
     WINSOCK_INIT_P
 
     // Test Unit
@@ -117,6 +118,59 @@ TEST(AddrinfoTestSuite, get_successful) {
     // Returns what getaddrinfo() returns.
     EXPECT_EQ(ai1.addr_str(), "::1");
     EXPECT_EQ(ai1.port(), 50001);
+}
+
+TEST(AddrinfoTestSuite, get_passive_addressinfo) {
+    // To get a passive address info, node must be empty otherwise flag
+    // AI_PASSIVE is ignored.
+    WINSOCK_INIT_P
+
+    // Test Unit
+    CAddrinfo ai1("", "50006", AF_INET6, SOCK_STREAM,
+                  AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
+
+    EXPECT_EQ(ai1->ai_family, AF_INET6);
+    EXPECT_EQ(ai1->ai_socktype, SOCK_STREAM);
+    EXPECT_EQ(ai1->ai_protocol, 0);
+    EXPECT_EQ(ai1->ai_flags, AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
+    // wildcard address ipv4 = 0.0.0.0, ipv6 = ::/128
+    EXPECT_EQ(ai1.addr_str(), "::");
+    EXPECT_EQ(ai1.port(), 50006);
+}
+
+TEST(AddrinfoTestSuite, get_info_loopback_interface) {
+    // To get info of the loopback interface node must be empty without
+    // AI_PASSIVE flag set.
+    WINSOCK_INIT_P
+
+    // Test Unit
+    CAddrinfo ai1("", "50007", AF_UNSPEC, SOCK_STREAM,
+                  AI_NUMERICHOST | AI_NUMERICSERV);
+
+    EXPECT_EQ(ai1->ai_family, AF_INET6);
+    EXPECT_EQ(ai1->ai_socktype, SOCK_STREAM);
+    EXPECT_EQ(ai1->ai_protocol, 0);
+    EXPECT_EQ(ai1->ai_flags, AI_NUMERICHOST | AI_NUMERICSERV);
+    EXPECT_EQ(ai1.addr_str(), "::1");
+    EXPECT_EQ(ai1.port(), 50007);
+}
+
+TEST(AddrinfoTestSuite, uninitilized_port_nummer) {
+    // With a node but an empty service the returned port number in the address
+    // structure remains uninitialized. It appears to be initialized to zero
+    // nonetheless, but should not be relied upon.
+    WINSOCK_INIT_P
+
+    // Test Unit
+    CAddrinfo ai1("::1", "", AF_INET6, SOCK_STREAM,
+                  AI_NUMERICHOST | AI_NUMERICSERV);
+
+    EXPECT_EQ(ai1->ai_family, AF_INET6);
+    EXPECT_EQ(ai1->ai_socktype, SOCK_STREAM);
+    EXPECT_EQ(ai1->ai_protocol, 0);
+    EXPECT_EQ(ai1->ai_flags, AI_NUMERICHOST | AI_NUMERICSERV);
+    EXPECT_EQ(ai1.addr_str(), "::1");
+    EXPECT_EQ(ai1.port(), 0);
 }
 
 TEST(AddrinfoTestSuite, get_fails) {
@@ -172,6 +226,7 @@ TEST(AddrinfoTestSuite, assign_other_object_successful) {
     // Get two valid address informations.
     WINSOCK_INIT_P
 
+    // With node != nullptr AI_PASSIVE is ignored.
     CAddrinfo ai1("::1", "50004", AF_INET6, SOCK_STREAM,
                   AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
 
@@ -200,39 +255,32 @@ TEST(AddrinfoTestSuite, assign_other_object_successful) {
 } // namespace upnplib
 
 
+// TODO: there is a problem with a reused address on the server.
 int main(int argc, char** argv) {
-    testing::InitGoogleMock(&argc, argv);
-    return RUN_ALL_TESTS();
-    // #include "upnplib/gtest_main.inc"
-}
-
-
-#if 0
-int main(int argc, char** argv) {
-    CServerTCP* tls_svr;
+    CServerTCP* tcp_svr;
     std::thread* t1;
 
     // Instantiate TCP server object and catch errors on resource initialization
     // from its constructor.
     try {
-        static CServerTCP tls_svrObj;
+        static CServerTCP tcp_svrObj;
         // To have the object available outside this block we need a pointer.
         // That's also why we declare it static.
-        tls_svr = &tls_svrObj;
-        // Run simple TLS server with a thread.
-        static std::thread t1Obj(&CServerTCP::run, tls_svr);
+        tcp_svr = &tcp_svrObj;
+        // Run simple tcp server with a thread.
+        static std::thread t1Obj(&CServerTCP::run, tcp_svr);
         t1 = &t1Obj;
     } catch (const std::exception& e) {
         std::clog << e.what() << "\n";
         std::exit(EXIT_FAILURE);
     }
 
-    // Wait until the TLS server is ready.
+    // Wait until the tcp server is ready.
     constexpr int delay{60}; // polling delay in microseconds
     constexpr int limit{10}; // limit of polling retries
     int i;
     for (i = 0; i < limit; i++) {
-        if (tls_svr->ready(delay))
+        if (tcp_svr->ready(delay))
             break;
     }
     if (i >= limit) {
@@ -256,4 +304,10 @@ int main(int argc, char** argv) {
     t1->join();
     return gtest_rc;
 }
-#endif
+
+
+// int main(int argc, char** argv) {
+//     testing::InitGoogleMock(&argc, argv);
+//     return RUN_ALL_TESTS();
+//     // #include "upnplib/gtest_main.inc"
+// }

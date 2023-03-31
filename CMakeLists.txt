@@ -142,10 +142,10 @@ add_executable(test_client-server-tcp
 #target_include_directories(test_client-server-tcp
 #    PRIVATE
 #)
-#target_compile_definitions(test_client-server-tcp
-#    PRIVATE
-#        UPNPLIB_WITH_TRACE
-#)
+target_compile_definitions(test_client-server-tcp
+    PRIVATE
+        UPNPLIB_WITH_TRACE
+)
 target_link_libraries(test_client-server-tcp
     PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:ws2_32> # winsock to support sockets

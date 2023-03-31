@@ -1,7 +1,7 @@
 #ifndef SERVER_TCP_HPP
 #define SERVER_TCP_HPP
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-17
+// Redistribution only with this Copyright remark. Last modified: 2023-04-01
 
 #include "port_sock.hpp"
 
@@ -21,9 +21,9 @@ class CServerTCP {
     bool ready(int delay) const;
 
   private:
+    WINSOCK_INIT_P
     bool m_ready{false};
     CSocket m_listen_sfd;
-    addrinfo* m_ai;
 };
 
 } // namespace upnplib

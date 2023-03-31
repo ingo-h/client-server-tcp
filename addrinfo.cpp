@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-30
+// Redistribution only with this Copyright remark. Last modified: 2023-04-01
 
 #include "addrinfo.hpp"
 #include "port.hpp"
@@ -17,7 +17,7 @@ CAddrinfo::CAddrinfo(const std::string& a_node, const std::string& a_service,
     : m_node(a_node),
       m_service(a_service), m_hints{a_flags, a_family, a_socktype, a_protocol,
                                     {},      nullptr,  nullptr,    nullptr} {
-    TRACE2(this, " Construct upnplib::CAddrinfo(..) with arguments");
+    TRACE2(this, " Construct upnplib::CAddrinfo(..) with arguments")
 
     // Get new address information from the operating system.
     m_res = this->get_new_addrinfo(); // may throw exception
@@ -25,7 +25,7 @@ CAddrinfo::CAddrinfo(const std::string& a_node, const std::string& a_service,
 
 // Copy constructor
 CAddrinfo::CAddrinfo(const CAddrinfo& that) {
-    TRACE2(this, " Construct copy upnplib::CAddrinfo()");
+    TRACE2(this, " Construct copy upnplib::CAddrinfo()")
     m_node = that.m_node;
     m_service = that.m_service;
     m_hints = that.m_hints;
@@ -34,7 +34,7 @@ CAddrinfo::CAddrinfo(const CAddrinfo& that) {
 
 // Copy assignment operator
 CAddrinfo& CAddrinfo::operator=(CAddrinfo that) {
-    TRACE2(this, " Executing upnplib::CAddrinfo::operator=");
+    TRACE2(this, " Executing upnplib::CAddrinfo::operator=()")
     // The argument by value ('that') was copied to the stack by the copy
     // constructor. It contains also a pointer (m_res) to a new allocated
     // addrinfo.
@@ -52,21 +52,22 @@ CAddrinfo& CAddrinfo::operator=(CAddrinfo that) {
 }
 
 CAddrinfo::~CAddrinfo() {
-    TRACE2(this, " Destruct upnplib::CAddrinfo()");
-    TRACE2("Call freeaddrinfo() with m_res = ", m_res);
+    TRACE2(this, " Destruct upnplib::CAddrinfo()")
+    TRACE2("Call freeaddrinfo() with m_res = ", m_res)
     ::freeaddrinfo(m_res);
     m_res = nullptr;
 }
 
 addrinfo* CAddrinfo::get_new_addrinfo() {
-    TRACE2(this, " Executing upnplib::CAddrinfo::get_new_addrinfo()");
+    TRACE2(this, " Executing upnplib::CAddrinfo::get_new_addrinfo()")
 
     // Get new address information with cached hints. This should always return
     // the same address info.
     addrinfo* new_res{nullptr};
 
-    int ret =
-        ::getaddrinfo(m_node.c_str(), m_service.c_str(), &m_hints, &new_res);
+    int ret = ::getaddrinfo(m_node.empty() ? nullptr : m_node.c_str(),
+                            m_service.empty() ? nullptr : m_service.c_str(),
+                            &m_hints, &new_res);
     if (ret != 0) {
         throw std::runtime_error(
             "[" + std::to_string(__LINE__) +
@@ -81,14 +82,14 @@ addrinfo* CAddrinfo::get_new_addrinfo() {
     // We just return what was requested by the user.
     new_res->ai_flags = m_hints.ai_flags;
 
-    TRACE2("Called getaddrinfo() with new_res = ", new_res);
+    TRACE2("Called getaddrinfo() with new_res = ", new_res)
     return new_res;
 }
 
 addrinfo* CAddrinfo::operator->() const { return m_res; }
 
 std::string CAddrinfo::addr_str() const {
-    TRACE2(this, " Executing upnplib::CAddrinfo::addr_str()");
+    TRACE2(this, " Executing upnplib::CAddrinfo::addr_str()")
     char addrbuf[INET6_ADDRSTRLEN]{};
 
     if (m_res->ai_family == AF_INET6) {
@@ -106,7 +107,7 @@ std::string CAddrinfo::addr_str() const {
 
 uint16_t CAddrinfo::port() const {
     // port for AF_INET6 is also valid for AF_INET
-    TRACE2(this, " Executing upnplib::CAddrinfo::port()");
+    TRACE2(this, " Executing upnplib::CAddrinfo::port()")
     return ntohs(((sockaddr_in6*)m_res->ai_addr)->sin6_port);
 }
 

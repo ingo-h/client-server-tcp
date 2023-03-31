@@ -1,5 +1,5 @@
 // Copyright (C) 2021+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-30
+// Redistribution only with this Copyright remark. Last modified: 2023-04-01
 
 #include "port_sock.hpp"
 #include "port.hpp"
@@ -11,7 +11,7 @@ namespace upnplib {
 
 #ifdef _MSC_VER
 CWSAStartup::CWSAStartup() {
-    TRACE2(this, " Construct upnplib::CWSAStartup");
+    TRACE2(this, " Construct upnplib::CWSAStartup")
     WSADATA wsaData;
     int rc = ::WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (rc != 0) {
@@ -22,7 +22,7 @@ CWSAStartup::CWSAStartup() {
 }
 
 CWSAStartup::~CWSAStartup() {
-    TRACE2(this, " Destruct upnplib::CWSAStartup");
+    TRACE2(this, " Destruct upnplib::CWSAStartup")
     ::WSACleanup();
 }
 #endif // MSC_VER
@@ -32,7 +32,7 @@ CWSAStartup::~CWSAStartup() {
 // -------------------------
 // Constructor
 CSocket::CSocket(int domain, int type, int protocol) {
-    TRACE2(this, " Construct upnplib::CSocket()");
+    TRACE2(this, " Construct upnplib::CSocket()")
 
     if (domain | type | protocol) {
         SOCKET sfd = ::socket(domain, type, protocol);
@@ -54,21 +54,21 @@ CSocket::CSocket(int domain, int type, int protocol) {
 
 // Move constructor
 CSocket::CSocket(CSocket&& that) {
-    TRACE2(this, " Construct move upnplib::CSocket()");
+    TRACE2(this, " Construct move upnplib::CSocket()")
     fd = that.fd;
     that.fd = INVALID_SOCKET;
 }
 
 // Assignment operator (parameter as value)
 CSocket& CSocket::operator=(CSocket that) {
-    TRACE2(this, " Assignment operator upnplib::CSocket()");
+    TRACE2(this, " Executing upnplib::CSocket::operator=()")
     std::swap(fd, that.fd);
     return *this;
 }
 
 // Destructor
 CSocket::~CSocket() {
-    TRACE2(this, " Destruct upnplib::CSocket()");
+    TRACE2(this, " Destruct upnplib::CSocket()")
     CLOSE_SOCKET_P(this->fd);
 }
 

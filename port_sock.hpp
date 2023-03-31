@@ -1,7 +1,7 @@
 #ifndef UPNPLIB_INCLUDE_PORT_SOCK_HPP
 #define UPNPLIB_INCLUDE_PORT_SOCK_HPP
 // Copyright (C) 2021+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-29
+// Redistribution only with this Copyright remark. Last modified: 2023-04-01
 
 // clang-format off
 
@@ -46,14 +46,15 @@
 
 namespace upnplib {
 
-// Initialize and cleanup Microsoft Windows Sockets
-// ------------------------------------------------
+// Initialize and cleanup Microsoft Windows Sockets portable
+// ---------------------------------------------------------
 #ifdef _MSC_VER
 class CWSAStartup {
   public:
     CWSAStartup();
     virtual ~CWSAStartup();
 };
+// Winsock Init Portable
 #define WINSOCK_INIT_P CWSAStartup winsock_init;
 #else
 #define WINSOCK_INIT_P
