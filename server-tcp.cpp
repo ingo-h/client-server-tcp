@@ -1,11 +1,12 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-04-02
+// Redistribution only with this Copyright remark. Last modified: 2023-04-11
 
 #include "server-tcp.hpp"
 #include "port.hpp"
 #include "addrinfo.hpp"
 #include <thread>
 #include <cstring>
+#include <stdexcept>
 
 namespace upnplib {
 
@@ -24,42 +25,10 @@ static inline void throw_error(std::string errmsg) {
 // Simple TCP Server
 // =================
 
-CServerTCP::CServerTCP() : m_listen_sfd(AF_INET6, SOCK_STREAM) {
+CServerTCP::CServerTCP(const std::string& a_port,
+                       [[maybe_unused]] const bool a_reuse_addr)
+    : m_listen_sfd(AF_INET6, SOCK_STREAM) {
     TRACE2(this, " Construct upnplib::CServerTCP")
-
-    // Get socket option IPV6_V6ONLY for information/developement.
-    // -----------------------------------------------------------
-    socklen_t optlen{sizeof(int)};
-    int ipv6_only{-1};
-
-    if (::getsockopt(m_listen_sfd, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&ipv6_only,
-                     &optlen) != 0) {
-        throw_error("[Server] ERROR! Failed to get socket option IPV6_V6ONLY:");
-    }
-    std::cout << "[Server] INFO: IPV6_V6ONLY = " << ipv6_only << ".\n";
-
-    // Set socket option IPV6_V6ONLY to false, means allowing IPv4 and IPv6.
-    // ---------------------------------------------------------------------
-    // Set option only if needed.
-    if (ipv6_only == 1) {
-        ipv6_only = 0;
-        // Type cast (char*)&ipv6_only is needed for Microsoft Windows.
-        if (::setsockopt(m_listen_sfd, IPPROTO_IPV6, IPV6_V6ONLY,
-                         (char*)&ipv6_only, optlen) != 0) {
-            throw_error(
-                "[Server] ERROR! Failed to set socket option IPV6_V6ONLY:");
-        }
-    }
-
-    // Set socket option SO_REUSEADDR
-    // ------------------------------
-    int so_reuseaddr{1};
-    // Type cast (char*)&so_reuseaddr is needed for Microsoft Windows.
-    if (::setsockopt(m_listen_sfd, SOL_SOCKET, SO_REUSEADDR,
-                     (char*)&so_reuseaddr, optlen) != 0) {
-        throw_error(
-            "[Server] ERROR! Failed to set socket option SO_REUSEADDR:");
-    }
 
     // Get local address information that can be bound to the socket.
     // --------------------------------------------------------------
@@ -67,20 +36,17 @@ CServerTCP::CServerTCP() : m_listen_sfd(AF_INET6, SOCK_STREAM) {
     // Host and port are only numeric to avoid expensive name resolution.
     // If AI_PASSIVE is set then node must be empty to get a passive usable
     // address (passive usage will be set with listen).
-    CAddrinfo ai("", "4433", AF_INET6, SOCK_STREAM,
+    CAddrinfo ai("", a_port.c_str(), AF_INET6, SOCK_STREAM,
                  AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
 
     // Bind socket to a local address.
     // -------------------------------
-    if (::bind(m_listen_sfd, ai->ai_addr, ai->ai_addrlen) == SOCKET_ERROR) {
-        throw_error("[Server] ERROR! Failed to bind a socket to an address:");
-    }
+    m_listen_sfd.bind(ai);
 
     // Listen specifies passive usage of the socket for incomming connections.
     // -----------------------------------------------------------------------
-    if (::listen(m_listen_sfd, 1) != 0) {
-        throw_error("[Server] ERROR! Failed to bind a socket to an address:");
-    }
+    m_listen_sfd.listen();
+
 } // end constructor
 
 
@@ -89,7 +55,8 @@ CServerTCP::~CServerTCP() { TRACE2(this, " Destruct upnplib::CServerTCP") }
 
 void CServerTCP::run() {
     // TODO: Improve protocol handling
-    // Reference: https://stackoverflow.com/q/4160347/5014688
+    // REF: [close vs shutdown socket?]
+    // (https://stackoverflow.com/q/4160347/5014688)
     //
     // This method can run in a thread and should be thread safe.
     // Method will quit if we have received a single "Q" string (['Q', '\0']).
@@ -110,10 +77,9 @@ void CServerTCP::run() {
 
     while (buffer[0] != 'Q' || valread != 1) {
         accept_sfd = ::accept(m_listen_sfd, nullptr, nullptr);
-        if (accept_sfd == INVALID_SOCKET) {
+        if (accept_sfd == INVALID_SOCKET)
             throw_error(
                 "[Server] ERROR! Failed to accept an incomming request:");
-        }
 
         // Read accepted connection.
         // -------------------------
@@ -141,6 +107,26 @@ bool CServerTCP::ready(int a_delay) const {
         // This is only to aviod busy polling from the calling thread.
         std::this_thread::sleep_for(std::chrono::microseconds(a_delay));
     return m_ready;
+}
+
+bool CServerTCP::is_v6only() const {
+    TRACE2(this, " Executing upnplib::CServerTCP::get_v6only()")
+    return m_listen_sfd.is_v6only();
+}
+
+bool CServerTCP::is_reuse_addr() const {
+    TRACE2(this, " Executing upnplib::CServerTCP::get_reuse_addr()")
+    return m_listen_sfd.is_reuse_addr();
+}
+
+uint16_t CServerTCP::get_port() const {
+    TRACE2(this, " Executing upnplib::CServerTCP::get_port()")
+    return m_listen_sfd.get_port();
+}
+
+bool CServerTCP::is_listen() const {
+    TRACE2(this, " Executing upnplib::CServerTCP::get_listen()")
+    return m_listen_sfd.is_listen();
 }
 
 } // namespace upnplib

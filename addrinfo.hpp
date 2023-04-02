@@ -1,7 +1,7 @@
 #ifndef UPNPLIB_INCLUDE_ADDRINFO_HPP
 #define UPNPLIB_INCLUDE_ADDRINFO_HPP
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-03-30
+// Redistribution only with this Copyright remark. Last modified: 2023-04-10
 
 #include "port_sock.hpp"
 #include <string>
@@ -10,6 +10,11 @@ namespace upnplib {
 
 // Provide C style addrinfo as class and wrap its system calls
 // -----------------------------------------------------------
+// Typically, a complete socket address consists of IP address, port and socket
+// type. For example '[2001:db8::1]:8080, type SOCK_STREAM' is different from
+// '[2001:db8::1]:8080, type SOCK_DGRAM' or from '[2001:db8::1]:50000, type
+// SOCK_STREAM'. Binding will not complain "address already in use".
+
 class CAddrinfo {
   public:
     // Constructor for getting an address information.
@@ -18,8 +23,8 @@ class CAddrinfo {
               const int a_flags = 0, const int protocol = 0);
 
     // Rule of three: we need a copy constructor and a copy assignment operator.
-    // Reference:
-    // [What is The Rule of Three?](https://stackoverflow.com/q/4172722/5014688)
+    // REF: [What is The Rule of Three?]
+    // (https://stackoverflow.com/q/4172722/5014688)
     //
     // copy constructor:
     // Example: CAddrinfo ai2 = ai1; // ai1 is an instantiated valid object,
@@ -35,7 +40,8 @@ class CAddrinfo {
 
     // This is to have read access to members of the addrinfo structure,
     // Example: CAddrinfo ai(..); if(ai->family == AF_INET6) {..};
-    // Reference: https://stackoverflow.com/a/8782794/5014688
+    // REF: [Overloading member access operators ->, .*]
+    // https://stackoverflow.com/a/8782794/5014688
     addrinfo* operator->() const;
 
     // Getter for address string

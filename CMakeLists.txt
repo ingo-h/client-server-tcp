@@ -1,5 +1,5 @@
 # Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-# Redistribution only with this Copyright remark. Last modified: 2023-03-29
+# Redistribution only with this Copyright remark. Last modified: 2023-04-10
 
 # Configure and build with:
 # cmake -S . -B build [-D CMAKE_BUILD_TYPE=Debug -D GOOGLETEST=ON]
@@ -135,17 +135,17 @@ message(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
 add_executable(test_client-server-tcp
     ./client-tcp.cpp
     ./server-tcp.cpp
-    ./port_sock.cpp
+    ./socket.cpp
     ./addrinfo.cpp
     ./test_client-server-tcp.cpp
 )
 #target_include_directories(test_client-server-tcp
 #    PRIVATE
 #)
-target_compile_definitions(test_client-server-tcp
-    PRIVATE
-        UPNPLIB_WITH_TRACE
-)
+#target_compile_definitions(test_client-server-tcp
+#    PRIVATE
+#        UPNPLIB_WITH_TRACE
+#)
 target_link_libraries(test_client-server-tcp
     PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:ws2_32> # winsock to support sockets
