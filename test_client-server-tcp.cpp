@@ -150,6 +150,13 @@ TEST(SocketTestSuite, set_bind) {
     const CAddrinfo ai("", "50012", AF_INET6, SOCK_STREAM,
                        AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
 
+    // Test Unit.
+    // This binds the local address. You will get an error "address already in
+    // use" if you try to bind to it again in this test.
+    CSocket sock(AF_INET6, SOCK_STREAM);
+    ASSERT_NO_THROW(sock.bind(ai));
+    EXPECT_EQ(sock.get_port(), 50012); // This tests the binding
+
     // Test Unit. Binding an empty socket object will fail.
     EXPECT_THAT(
         [&ai]() {
@@ -167,13 +174,6 @@ TEST(SocketTestSuite, set_bind) {
         },
         ThrowsMessage<std::runtime_error>(
             StartsWith("ERROR! Failed to bind socket to an address:")));
-
-    // Test Unit.
-    // This binds the local address. You will get an error "address already in
-    // use" if you try to bind to it again in this test.
-    CSocket sock(AF_INET6, SOCK_STREAM);
-    ASSERT_NO_THROW(sock.bind(ai));
-    EXPECT_EQ(sock.get_port(), 50012); // This tests the binding
 }
 
 TEST(SocketTestSuite, set_bind_with_different_socket_type) {
@@ -192,6 +192,59 @@ TEST(SocketTestSuite, set_bind_with_different_socket_type) {
         ThrowsMessage<std::runtime_error>(StartsWith(
             "ERROR! Failed to bind socket to an address: \"socket type of "
             "address (")));
+}
+
+TEST(SocketTestSuite, two_binds) {
+    WINSOCK_INIT_P
+
+    // Get a socket.
+    CSocket sock1(AF_INET6, SOCK_STREAM);
+
+    // Get local interface address.
+    const CAddrinfo ai1("", "50013", AF_INET6, SOCK_STREAM,
+                        AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
+
+    // This binds the local address.
+    ASSERT_NO_THROW(sock1.bind(ai1));
+    EXPECT_EQ(sock1.get_port(), 50013); // This tests the binding
+
+    // Get a socket.
+    CSocket sock2(AF_INET6, SOCK_STREAM);
+
+    // Bind to a new address.
+    const CAddrinfo ai2("", "50014", AF_INET6, SOCK_STREAM,
+                        AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
+
+    ASSERT_NO_THROW(sock2.bind(ai2));
+    EXPECT_EQ(sock2.get_port(), 50014); // This tests the binding
+}
+
+TEST(SocketTestSuite, two_scoped_binds) {
+    WINSOCK_INIT_P
+
+    {
+        // Get a socket.
+        CSocket sock(AF_INET6, SOCK_STREAM);
+
+        // Get local interface address.
+        const CAddrinfo ai1("", "50013", AF_INET6, SOCK_STREAM,
+                            AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
+
+        // This binds the local address.
+        ASSERT_NO_THROW(sock.bind(ai1));
+        EXPECT_EQ(sock.get_port(), 50013); // This tests the binding
+    }
+    {
+        // Get a socket.
+        CSocket sock(AF_INET6, SOCK_STREAM);
+
+        // Bind to a new address.
+        const CAddrinfo ai2("", "50014", AF_INET6, SOCK_STREAM,
+                            AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
+
+        ASSERT_NO_THROW(sock.bind(ai2));
+        EXPECT_EQ(sock.get_port(), 50014); // This tests the binding
+    }
 }
 
 TEST(SocketTestSuite, set_wrong_arguments) {
