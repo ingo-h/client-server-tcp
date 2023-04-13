@@ -189,9 +189,9 @@ TEST(SocketTestSuite, set_bind_with_different_socket_type) {
             CSocket sock(AF_INET, SOCK_STREAM);
             sock.bind(ai);
         },
-        ThrowsMessage<std::runtime_error>(
+        ThrowsMessage<std::runtime_error>(StartsWith(
             "ERROR! Failed to bind socket to an address: \"socket type of "
-            "address does not match socket type\""));
+            "address (")));
 }
 
 TEST(SocketTestSuite, set_wrong_arguments) {

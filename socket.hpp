@@ -1,10 +1,11 @@
 #ifndef UPNPLIB_SOCKET_CLASS_HPP
 #define UPNPLIB_SOCKET_CLASS_HPP
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-04-10
+// Redistribution only with this Copyright remark. Last modified: 2023-04-13
 
 #include "port_sock.hpp"
 #include "addrinfo.hpp"
+#include <mutex>
 
 namespace upnplib {
 
@@ -84,10 +85,11 @@ class CSocket {
     SOCKET m_sfd{INVALID_SOCKET};
 
     // Cache if system functions where called.
-    // std::mutex m_listen_mutex;
-    bool m_listen{false};
-    bool m_bound{false};
     int m_af{-1}; // used address family e.g. AF_INET6
+    mutable std::mutex m_bound_mutex;
+    bool m_bound{false}; // Protected by mutex.
+    mutable std::mutex m_listen_mutex;
+    bool m_listen{false}; // Protected by mutex.
 
     int getsockopt_int(int a_level, int a_optname,
                        const std::string& a_optname_str) const;

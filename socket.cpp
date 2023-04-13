@@ -1,5 +1,5 @@
 // Copyright (C) 2021+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-04-10
+// Redistribution only with this Copyright remark. Last modified: 2023-04-13
 
 #include "socket.hpp"
 #include "port.hpp"
@@ -103,23 +103,30 @@ CSocket::CSocket(int a_domain, int a_type, int a_protocol) {
 // Move constructor
 CSocket::CSocket(CSocket&& that) {
     TRACE2(this, " Construct move upnplib::CSocket()")
-    m_listen = that.m_listen;
-    that.m_listen = false;
-    m_bound = that.m_bound;
-    that.m_bound = false;
     m_af = that.m_af;
     that.m_af = -1;
     m_sfd = that.m_sfd;
     that.m_sfd = INVALID_SOCKET;
+
+    // Following variables are protected
+    std::scoped_lock lock(m_bound_mutex, m_listen_mutex);
+    m_bound = that.m_bound;
+    that.m_bound = false;
+    m_listen = that.m_listen;
+    that.m_listen = false;
 }
 
 // Assignment operator (parameter as value)
 CSocket& CSocket::operator=(CSocket that) {
     TRACE2(this, " Executing upnplib::CSocket::operator=()")
     std::swap(m_sfd, that.m_sfd);
-    std::swap(m_listen, that.m_listen);
-    std::swap(m_bound, that.m_bound);
     std::swap(m_af, that.m_af);
+
+    // Following variables are protected
+    std::scoped_lock lock(m_bound_mutex, m_listen_mutex);
+    std::swap(m_bound, that.m_bound);
+    std::swap(m_listen, that.m_listen);
+
     return *this;
 }
 
@@ -155,7 +162,6 @@ void CSocket::set_reuse_addr(bool a_reuse) {
 // (https://hea-www.harvard.edu/~fine/Tech/addrinuse.html)
 void CSocket::bind(const CAddrinfo& ai) {
     TRACE2(this, " Executing upnplib::CSocket::bind()")
-    // std::lock_guard<std::mutex> guard(m_listen_mutex);
 
     int so_option{-1};
     socklen_t optlen{sizeof(so_option)}; // May be modified
@@ -164,9 +170,14 @@ void CSocket::bind(const CAddrinfo& ai) {
         throw_error("ERROR! Failed to bind socket to an address:");
 
     if (ai->ai_socktype != so_option)
-        throw std::runtime_error(
-            "ERROR! Failed to bind socket to an address: "
-            "\"socket type of address does not match socket type\"");
+        throw std::runtime_error("ERROR! Failed to bind socket to an address: "
+                                 "\"socket type of address (" +
+                                 std::to_string(ai->ai_socktype) +
+                                 ") does not match socket type (" +
+                                 std::to_string(so_option) + ")\"");
+
+    // Protect binding and storing its state (m_bound).
+    std::scoped_lock lock(m_bound_mutex);
 
     if (::bind(m_sfd, ai->ai_addr, ai->ai_addrlen) == SOCKET_ERROR)
         throw_error("ERROR! Failed to bind socket to an address:");
@@ -177,7 +188,9 @@ void CSocket::bind(const CAddrinfo& ai) {
 // Setter: set socket to listen
 void CSocket::listen() {
     TRACE2(this, " Executing upnplib::CSocket::listen()")
-    // std::lock_guard<std::mutex> guard(m_listen_mutex);
+
+    // Protect set listen and storing its state (m_listen).
+    std::scoped_lock lock(m_listen_mutex);
 
     // Second argument backlog (maximum length of the queue for pending
     // connections) is hard coded set to 1 for now.
@@ -231,6 +244,9 @@ bool CSocket::is_bind() const {
     if (m_sfd == INVALID_SOCKET)
         throw std::runtime_error("ERROR! Failed to get socket option "
                                  "'is_bind': \"Bad file descriptor\"");
+
+    // m_bound is protected.
+    std::scoped_lock lock(m_bound_mutex);
     return m_bound;
 }
 
@@ -239,6 +255,9 @@ bool CSocket::is_listen() const {
     if (m_sfd == INVALID_SOCKET)
         throw std::runtime_error("ERROR! Failed to get socket option "
                                  "'is_Listen': \"Bad file descriptor\"");
+
+    // m_listen is protected.
+    std::scoped_lock lock(m_listen_mutex);
     return m_listen;
 }
 
