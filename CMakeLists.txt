@@ -150,6 +150,6 @@ target_link_libraries(test_client-server-tcp
     PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:ws2_32> # winsock to support sockets
 )
-add_test(NAME ctest_client-server-tcp COMMAND test_client-server-tcp --gtest_shuffle
+add_test(NAME ctest_client-server-tcp COMMAND test_client-server-tcp
         WORKING_DIRECTORY ${PROJECT_OUTPUT_DIRECTORY}
 )

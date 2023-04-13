@@ -143,6 +143,24 @@ TEST(SocketTestSuite, object_with_invalid_socket_fd) {
                     "'is_Listen': \"Bad file descriptor\""));
 }
 
+TEST(SocketTestSuite, set_bind_with_different_socket_type) {
+    WINSOCK_INIT_P
+
+    // Get local interface address.
+    const CAddrinfo ai("", "50011", AF_INET, SOCK_DGRAM,
+                       AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
+
+    // Test Unit. Binding with different SOCK_STREAM (not SOCK_DGRAM) will fail.
+    EXPECT_THAT(
+        [&ai]() {
+            CSocket sock(AF_INET, SOCK_STREAM);
+            sock.bind(ai);
+        },
+        ThrowsMessage<std::runtime_error>(StartsWith(
+            "ERROR! Failed to bind socket to an address: \"socket type of "
+            "address (")));
+}
+
 TEST(SocketTestSuite, set_bind) {
     WINSOCK_INIT_P
 
@@ -174,24 +192,6 @@ TEST(SocketTestSuite, set_bind) {
         },
         ThrowsMessage<std::runtime_error>(
             StartsWith("ERROR! Failed to bind socket to an address:")));
-}
-
-TEST(SocketTestSuite, set_bind_with_different_socket_type) {
-    WINSOCK_INIT_P
-
-    // Get local interface address.
-    const CAddrinfo ai("", "50011", AF_INET, SOCK_DGRAM,
-                       AI_PASSIVE | AI_NUMERICHOST | AI_NUMERICSERV);
-
-    // Test Unit. Binding with different SOCK_STREAM (not SOCK_DGRAM) will fail.
-    EXPECT_THAT(
-        [&ai]() {
-            CSocket sock(AF_INET, SOCK_STREAM);
-            sock.bind(ai);
-        },
-        ThrowsMessage<std::runtime_error>(StartsWith(
-            "ERROR! Failed to bind socket to an address: \"socket type of "
-            "address (")));
 }
 
 TEST(SocketTestSuite, set_wrong_arguments) {
