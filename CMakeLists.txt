@@ -1,10 +1,10 @@
 # Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
 # Redistribution only with this Copyright remark. Last modified: 2023-04-10
-
+# ~~~
 # Configure and build with:
 # cmake -S . -B build [-D CMAKE_BUILD_TYPE=Debug -D GOOGLETEST=ON]
 # cmake --build build --config Debug|Release
-
+# ~~~
 cmake_minimum_required(VERSION 3.18)
 
 # This is a guard that you do not build direct in the source tree.

@@ -22,3 +22,4 @@ Testing/
 !.github
 !.mailmap
 !.clang-format
+!.cmake-format.py
