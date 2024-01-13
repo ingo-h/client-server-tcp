@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-04-01
+// Redistribution only with this Copyright remark. Last modified: 2024-01-12
 
 #include "addrinfo.hpp"
 #include "port.hpp"
@@ -14,9 +14,9 @@ namespace upnplib {
 CAddrinfo::CAddrinfo(const std::string& a_node, const std::string& a_service,
                      const int a_family, const int a_socktype,
                      const int a_flags, const int a_protocol)
-    : m_node(a_node),
-      m_service(a_service), m_hints{a_flags, a_family, a_socktype, a_protocol,
-                                    {},      nullptr,  nullptr,    nullptr} {
+    : m_node(a_node), m_service(a_service),
+      m_hints{a_flags, a_family, a_socktype, a_protocol,
+              {},      nullptr,  nullptr,    nullptr} {
     TRACE2(this, " Construct upnplib::CAddrinfo(..) with arguments")
 
     // Get new address information from the operating system.
@@ -71,7 +71,7 @@ addrinfo* CAddrinfo::get_new_addrinfo() {
     if (ret != 0) {
         throw std::runtime_error(
             "[" + std::to_string(__LINE__) +
-            "] ERROR! Failed to get address information: errid(" +
+            "] ERROR! MSG1025: Failed to get address information: errid(" +
             std::to_string(ret) + ")=\"" + ::gai_strerror(ret) + "\"");
     }
 

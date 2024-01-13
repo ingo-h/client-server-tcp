@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-04-11
+// Redistribution only with this Copyright remark. Last modified: 2024-01-12
 
 #include "server-tcp.hpp"
 #include "port.hpp"
@@ -78,8 +78,8 @@ void CServerTCP::run() {
     while (buffer[0] != 'Q' || valread != 1) {
         accept_sfd = ::accept(m_listen_sfd, nullptr, nullptr);
         if (accept_sfd == INVALID_SOCKET)
-            throw_error(
-                "[Server] ERROR! Failed to accept an incomming request:");
+            throw_error("[Server] ERROR! MSG1022: Failed to accept an "
+                        "incomming request:");
 
         // Read accepted connection.
         // -------------------------
@@ -90,11 +90,13 @@ void CServerTCP::run() {
 
         switch (valread) {
         case 0:
-            throw_error("[Server] ERROR! Read an incomming request with "
-                        "message length = 0:");
+            throw_error(
+                "[Server] ERROR! MSG1023: Read an incomming request with "
+                "message length = 0:");
             break; // Needed to suppress compiler warning
         case SOCKET_ERROR:
-            throw_error("[Server] ERROR! Failed to read an incomming request:");
+            throw_error("[Server] ERROR! MSG1024: Failed to read an incomming "
+                        "request:");
         }
         buffer[valread] = '\0';
     } // while

@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-04-11
+// Redistribution only with this Copyright remark. Last modified: 2024-01-12
 
 #include "client-tcp.hpp"
 #include "port.hpp"
@@ -34,12 +34,12 @@ void quit_server() {
     if (ret != 0) {
 #ifdef _WIN32
         throw std::runtime_error(
-            "[Client] ERROR! Failed to connect: WSAGetLastError()=" +
+            "[Client] ERROR! MSG1018: Failed to connect: WSAGetLastError()=" +
             std::to_string(WSAGetLastError()));
 #else
-        throw std::runtime_error("[Client] ERROR! Failed to connect: errno(" +
-                                 std::to_string(errno) + ")=\"" +
-                                 std::strerror(errno) + "\"");
+        throw std::runtime_error(
+            "[Client] ERROR! MSG1019: Failed to connect: errno(" +
+            std::to_string(errno) + ")=\"" + std::strerror(errno) + "\"");
 #endif
     }
 
@@ -47,13 +47,15 @@ void quit_server() {
     ssize_t valsend = ::send(sock, "Q", 1, 0);
     if (valsend != 1) {
 #ifdef _WIN32
-        throw std::runtime_error("[Client] ERROR! Failed to send server Quit "
-                                 "message: WSAGetLastError()=" +
-                                 std::to_string(WSAGetLastError()));
-#else
         throw std::runtime_error(
-            "[Client] ERROR! Failed to send server Quit message: errno(" +
-            std::to_string(errno) + ")=\"" + std::strerror(errno) + "\"");
+            "[Client] ERROR! MSG1020: Failed to send server Quit "
+            "message: WSAGetLastError()=" +
+            std::to_string(WSAGetLastError()));
+#else
+        throw std::runtime_error("[Client] ERROR! MSG1021: Failed to send "
+                                 "server Quit message: errno(" +
+                                 std::to_string(errno) + ")=\"" +
+                                 std::strerror(errno) + "\"");
 #endif
     }
 

@@ -1,5 +1,5 @@
 // Copyright (C) 2021+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-04-13
+// Redistribution only with this Copyright remark. Last modified: 2024-01-12
 
 #include "socket.hpp"
 #include "port.hpp"
@@ -16,7 +16,7 @@ CWSAStartup::CWSAStartup() {
     WSADATA wsaData;
     int rc = ::WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (rc != 0) {
-        throw std::runtime_error("ERROR! Failed to initialize Windows "
+        throw std::runtime_error("ERROR! MSG1001: Failed to initialize Windows "
                                  "sockets: WSAStartup() returns " +
                                  std::to_string(rc));
     }
@@ -55,7 +55,7 @@ CSocket::CSocket(int a_domain, int a_type, int a_protocol) {
     // Get socket file descriptor.
     SOCKET sfd = ::socket(a_domain, a_type, a_protocol);
     if (sfd == INVALID_SOCKET)
-        throw_error("ERROR! Failed to create socket:");
+        throw_error("ERROR! MSG1002: Failed to create socket:");
 
     int so_option{0};
     constexpr socklen_t optlen{sizeof(so_option)};
@@ -67,7 +67,8 @@ CSocket::CSocket(int a_domain, int a_type, int a_protocol) {
     if (::setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, (char*)&so_option,
                      optlen) != 0) {
         CLOSE_SOCKET_P(sfd);
-        throw_error("ERROR! Failed to set socket option SO_REUSEADDR:");
+        throw_error(
+            "ERROR! MSG1003: Failed to set socket option SO_REUSEADDR:");
     }
 
 #ifdef _MSC_VER
@@ -80,7 +81,8 @@ CSocket::CSocket(int a_domain, int a_type, int a_protocol) {
     if (::setsockopt(sfd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&so_option,
                      optlen) != 0) {
         CLOSE_SOCKET_P(sfd);
-        throw_error("ERROR! Failed to set socket option SO_EXCLUSIVEADDRUSE:");
+        throw_error(
+            "ERROR! MSG1004: Failed to set socket option SO_EXCLUSIVEADDRUSE:");
     }
 #endif
 
@@ -91,7 +93,8 @@ CSocket::CSocket(int a_domain, int a_type, int a_protocol) {
         if (::setsockopt(sfd, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&so_option,
                          optlen) != 0) {
             CLOSE_SOCKET_P(sfd);
-            throw_error("ERROR! Failed to set socket option IPV6_V6ONLY:");
+            throw_error(
+                "ERROR! MSG1005: Failed to set socket option IPV6_V6ONLY:");
         }
     }
 
@@ -153,7 +156,7 @@ void CSocket::set_reuse_addr(bool a_reuse) {
     if (::setsockopt(m_listen_sfd, SOL_SOCKET, SO_REUSEADDR, (char*)&so_option,
                      optlen) != 0)
         throw_error(
-            "[Server] ERROR! Failed to set socket option SO_REUSEADDR:");
+            "[Server] ERROR! MSG1006: Failed to set socket option SO_REUSEADDR:");
 }
 #endif
 
@@ -167,20 +170,21 @@ void CSocket::bind(const CAddrinfo& ai) {
     socklen_t optlen{sizeof(so_option)}; // May be modified
     if (::getsockopt(m_sfd, SOL_SOCKET, SO_TYPE, (char*)&so_option, &optlen) ==
         SOCKET_ERROR)
-        throw_error("ERROR! Failed to bind socket to an address:");
+        throw_error("ERROR! MSG1007: Failed to bind socket to an address:");
 
     if (ai->ai_socktype != so_option)
-        throw std::runtime_error("ERROR! Failed to bind socket to an address: "
-                                 "\"socket type of address (" +
-                                 std::to_string(ai->ai_socktype) +
-                                 ") does not match socket type (" +
-                                 std::to_string(so_option) + ")\"");
+        throw std::runtime_error(
+            "ERROR! MSG1008: Failed to bind socket to an address: "
+            "\"socket type of address (" +
+            std::to_string(ai->ai_socktype) + ") does not match socket type (" +
+            std::to_string(so_option) + ")\"");
 
     // Protect binding and storing its state (m_bound).
     std::scoped_lock lock(m_bound_mutex);
 
     if (::bind(m_sfd, ai->ai_addr, ai->ai_addrlen) == SOCKET_ERROR)
-        throw_error("ERROR! Failed to bind socket to an address:");
+        throw_error("ERROR! MSG1009: Due to default socket reuse_addr=false, "
+                    "failed to bind socket to an address:");
 
     m_bound = true;
 }
@@ -195,7 +199,7 @@ void CSocket::listen() {
     // Second argument backlog (maximum length of the queue for pending
     // connections) is hard coded set to 1 for now.
     if (::listen(m_sfd, 1) != 0)
-        throw_error("ERROR! Failed to set socket to listen:");
+        throw_error("ERROR! MSG1010: Failed to set socket to listen:");
 
     m_listen = true;
 }
@@ -204,16 +208,18 @@ void CSocket::listen() {
 uint16_t CSocket::get_port() const {
     TRACE2(this, " Executing upnplib::CSocket::get_port()")
     if (m_sfd == INVALID_SOCKET)
-        throw std::runtime_error("ERROR! Failed to get socket port number: "
-                                 "\"Bad file descriptor\"");
+        throw std::runtime_error(
+            "ERROR! MSG1011: Failed to get socket port number: "
+            "\"Bad file descriptor\"");
     if (!this->is_bind())
-        throw std::runtime_error("ERROR! Failed to get socket port number: "
-                                 "\"not bound to an address\"");
+        throw std::runtime_error(
+            "ERROR! MSG1012: Failed to get socket port number: "
+            "\"not bound to an address\"");
     // Get port number
     sockaddr_storage ss{};
     socklen_t len = sizeof(ss); // May be modified
     if (::getsockname(m_sfd, (sockaddr*)&ss, &len) != 0)
-        throw_error("ERROR! Failed to get socket port number:");
+        throw_error("ERROR! MSG1013: Failed to get socket port number:");
 
     return ntohs(((sockaddr_in6*)&ss)->sin6_port);
 }
@@ -231,7 +237,7 @@ bool CSocket::is_reuse_addr() const {
 bool CSocket::is_v6only() const {
     TRACE2(this, " Executing upnplib::CSocket::is_v6only()")
     if (m_sfd == INVALID_SOCKET)
-        throw std::runtime_error("ERROR! Failed to get socket option "
+        throw std::runtime_error("ERROR! MSG1014: Failed to get socket option "
                                  "'is_v6only': \"Bad file descriptor\"");
     // We can have v6only with AF_INET6. Otherwise always false is returned.
     return (m_af == AF_INET6)
@@ -242,7 +248,7 @@ bool CSocket::is_v6only() const {
 bool CSocket::is_bind() const {
     TRACE2(this, " Executing upnplib::CSocket::is_bind()")
     if (m_sfd == INVALID_SOCKET)
-        throw std::runtime_error("ERROR! Failed to get socket option "
+        throw std::runtime_error("ERROR! MSG1015: Failed to get socket option "
                                  "'is_bind': \"Bad file descriptor\"");
 
     // m_bound is protected.
@@ -253,7 +259,7 @@ bool CSocket::is_bind() const {
 bool CSocket::is_listen() const {
     TRACE2(this, " Executing upnplib::CSocket::is_listen()")
     if (m_sfd == INVALID_SOCKET)
-        throw std::runtime_error("ERROR! Failed to get socket option "
+        throw std::runtime_error("ERROR! MSG1016: Failed to get socket option "
                                  "'is_Listen': \"Bad file descriptor\"");
 
     // m_listen is protected.
@@ -271,8 +277,8 @@ int CSocket::getsockopt_int(int a_level, int a_optname,
     // Type cast (char*)&so_option is needed for Microsoft Windows.
     if (::getsockopt(m_sfd, a_level, a_optname, (char*)&so_option, &optlen) !=
         0)
-        throw_error("ERROR! Failed to get socket option " + a_optname_str +
-                    ":");
+        throw_error("ERROR! MSG1017: Failed to get socket option " +
+                    a_optname_str + ":");
 
     return so_option;
 }

@@ -1,5 +1,5 @@
 // Copyright (C) 2023+ GPL 3 and higher by Ingo Höft, <Ingo@Hoeft-online.de>
-// Redistribution only with this Copyright remark. Last modified: 2023-04-11
+// Redistribution only with this Copyright remark. Last modified: 2024-01-12
 
 #include "client-tcp.hpp"
 #include "server-tcp.hpp"
@@ -21,10 +21,11 @@ TEST(SocketTestSuite, get_socket_successful) {
     // Test Unit
     CSocket sock(AF_INET6, SOCK_STREAM);
 
-    EXPECT_THAT([&sock]() { sock.get_port(); },
-                ThrowsMessage<std::runtime_error>(
-                    "ERROR! Failed to get socket port number: \"not bound to "
-                    "an address\""));
+    EXPECT_THAT(
+        [&sock]() { sock.get_port(); },
+        ThrowsMessage<std::runtime_error>(
+            "ERROR! MSG1012: Failed to get socket port number: \"not bound to "
+            "an address\""));
     EXPECT_EQ(sock.get_sockerr(), 0);
     EXPECT_FALSE(sock.is_reuse_addr());
     EXPECT_FALSE(sock.is_v6only());
@@ -119,27 +120,30 @@ TEST(SocketTestSuite, object_with_invalid_socket_fd) {
     EXPECT_EQ((SOCKET)sock, INVALID_SOCKET);
 
     // All getter from an INVALID_SOCKET throw an exception.
-    EXPECT_THAT(
-        [&sock]() { sock.get_port(); },
-        ThrowsMessage<std::runtime_error>("ERROR! Failed to get socket port "
-                                          "number: \"Bad file descriptor\""));
+    EXPECT_THAT([&sock]() { sock.get_port(); },
+                ThrowsMessage<std::runtime_error>(
+                    "ERROR! MSG1011: Failed to get socket port "
+                    "number: \"Bad file descriptor\""));
     EXPECT_THAT([&sock]() { sock.get_sockerr(); },
                 ThrowsMessage<std::runtime_error>(StartsWith(
-                    "ERROR! Failed to get socket option SO_ERROR: ")));
-    EXPECT_THAT([&sock]() { sock.is_reuse_addr(); },
-                ThrowsMessage<std::runtime_error>(StartsWith(
-                    "ERROR! Failed to get socket option SO_REUSEADDR: ")));
-    EXPECT_THAT([&sock]() { sock.is_v6only(); },
-                ThrowsMessage<std::runtime_error>(
-                    "ERROR! Failed to get socket option 'is_v6only': \"Bad "
-                    "file descriptor\""));
-    EXPECT_THAT([&sock]() { sock.is_bind(); },
-                ThrowsMessage<std::runtime_error>(
-                    "ERROR! Failed to get socket option 'is_bind': \"Bad file "
-                    "descriptor\""));
+                    "ERROR! MSG1017: Failed to get socket option SO_ERROR: ")));
+    EXPECT_THAT(
+        [&sock]() { sock.is_reuse_addr(); },
+        ThrowsMessage<std::runtime_error>(StartsWith(
+            "ERROR! MSG1017: Failed to get socket option SO_REUSEADDR: ")));
+    EXPECT_THAT(
+        [&sock]() { sock.is_v6only(); },
+        ThrowsMessage<std::runtime_error>(
+            "ERROR! MSG1014: Failed to get socket option 'is_v6only': \"Bad "
+            "file descriptor\""));
+    EXPECT_THAT(
+        [&sock]() { sock.is_bind(); },
+        ThrowsMessage<std::runtime_error>(
+            "ERROR! MSG1015: Failed to get socket option 'is_bind': \"Bad file "
+            "descriptor\""));
     EXPECT_THAT([&sock]() { sock.is_listen(); },
                 ThrowsMessage<std::runtime_error>(
-                    "ERROR! Failed to get socket option "
+                    "ERROR! MSG1016: Failed to get socket option "
                     "'is_Listen': \"Bad file descriptor\""));
 }
 
@@ -163,8 +167,8 @@ TEST(SocketTestSuite, set_bind) {
             CSocket sock;
             sock.bind(ai);
         },
-        ThrowsMessage<std::runtime_error>(
-            StartsWith("ERROR! Failed to bind socket to an address:")));
+        ThrowsMessage<std::runtime_error>(StartsWith(
+            "ERROR! MSG1007: Failed to bind socket to an address:")));
 
     // Test Unit. Binding with a different AF_INET will fail.
     EXPECT_THAT(
@@ -173,7 +177,9 @@ TEST(SocketTestSuite, set_bind) {
             sock.bind(ai);
         },
         ThrowsMessage<std::runtime_error>(
-            StartsWith("ERROR! Failed to bind socket to an address:")));
+            // Due to default socket reuse_addr=false, failed to bind socket to
+            // an address:
+            StartsWith("ERROR! MSG1009: ")));
 }
 
 TEST(SocketTestSuite, set_bind_with_different_socket_type) {
@@ -189,9 +195,10 @@ TEST(SocketTestSuite, set_bind_with_different_socket_type) {
             CSocket sock(AF_INET, SOCK_STREAM);
             sock.bind(ai);
         },
-        ThrowsMessage<std::runtime_error>(StartsWith(
-            "ERROR! Failed to bind socket to an address: \"socket type of "
-            "address (")));
+        ThrowsMessage<std::runtime_error>(
+            StartsWith("ERROR! MSG1008: Failed to bind socket to an address: "
+                       "\"socket type of "
+                       "address (")));
 }
 
 TEST(SocketTestSuite, two_binds) {
@@ -251,12 +258,12 @@ TEST(SocketTestSuite, set_wrong_arguments) {
     // Test Unit. Set wrong address family.
     EXPECT_THAT([]() { CSocket sock(-1, SOCK_STREAM); },
                 ThrowsMessage<std::runtime_error>(
-                    StartsWith("ERROR! Failed to create socket: ")));
+                    StartsWith("ERROR! MSG1002: Failed to create socket: ")));
 
     // Test Unit. Set wrong socket type.
     EXPECT_THAT([]() { CSocket sock(AF_INET6, -1); },
                 ThrowsMessage<std::runtime_error>(
-                    StartsWith("ERROR! Failed to create socket: ")));
+                    StartsWith("ERROR! MSG1002: Failed to create socket: ")));
 }
 
 #if 0
@@ -391,8 +398,8 @@ TEST(AddrinfoTestSuite, get_fails) {
                           AI_NUMERICHOST | AI_NUMERICSERV);
         },
         // errid(-9)="Address family for hostname not supported"
-        ThrowsMessage<std::runtime_error>(
-            HasSubstr("ERROR! Failed to get address information: errid(")));
+        ThrowsMessage<std::runtime_error>(HasSubstr(
+            "ERROR! MSG1025: Failed to get address information: errid(")));
 }
 
 TEST(AddrinfoTestSuite, copy_successful) {
