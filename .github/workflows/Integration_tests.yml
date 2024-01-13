@@ -14,11 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: DoozyX/clang-format-lint-action@v0.13
+    - uses: jidicula/clang-format-action@v4.11.0
       with:
-        source: '.'
-        extensions: 'cpp,hpp'
-        clangFormatVersion: 11.1.0
+        clang-format-version: '17'
 
 
   # Job: Configure, build and test Ubuntu
